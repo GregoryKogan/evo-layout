@@ -6,13 +6,13 @@ import (
 )
 
 func main() {
-	numVertices := 10
-	edgeFill := 0.5
+	numVertices := 13
+	edgeFill := 0.35
 	width, height := 1.0, 1.0
 	problem := graphplane.NewGraphPlaneProblem(numVertices, edgeFill, width, height)
 
-	targetFitness := 0.9
-	populationSize := 1000
+	targetFitness := 1.0
+	populationSize := 10000
 	ga := sga.NewSimpleGeneticAlgorithm(problem, targetFitness, populationSize)
 	ga.Run()
 }
