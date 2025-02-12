@@ -6,13 +6,14 @@ import (
 )
 
 type Graph struct {
-	NumVertices int
-	NumEdges    int
-	Edges       []Edge
+	NumVertices int    `json:"numVertices"`
+	NumEdges    int    `json:"numEdges"`
+	Edges       []Edge `json:"edges"`
 }
 
 type Edge struct {
-	From, To int
+	From int `json:"from"` // From < To
+	To   int `json:"to"`
 }
 
 func NewRandomGraph(numVertices int, edgeFill float64) *Graph {
@@ -44,8 +45,4 @@ func NewRandomGraph(numVertices int, edgeFill float64) *Graph {
 	}
 
 	return &Graph{NumVertices: numVertices, NumEdges: numEdges, Edges: edges}
-}
-
-func (g *Graph) MarshalJSON() ([]byte, error) {
-	return []byte(`{"NumVertices":` + fmt.Sprint(g.NumVertices) + `,"NumEdges":` + fmt.Sprint(g.NumEdges) + `,"Edges":` + fmt.Sprint(g.Edges) + `}`), nil
 }
