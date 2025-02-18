@@ -15,7 +15,7 @@ func NewGeneticAlgorithm(problem problems.Problem, targetFitness float64, logFil
 	return &GeneticAlgorithm{
 		ProgressLoggerProvider: NewProgressLogger(logFilepath),
 		Problem:                problem,
-		Solution:               nil,
+		Solution:               problem.RandomSolution(),
 		TargetFitness:          targetFitness,
 	}
 }

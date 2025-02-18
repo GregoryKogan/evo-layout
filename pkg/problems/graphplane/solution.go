@@ -50,7 +50,7 @@ func (s *GraphPlaneSolution) Crossover(other problems.Solution) problems.Solutio
 	return child
 }
 
-func (s *GraphPlaneSolution) Mutate() problems.Solution {
+func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
 	mutant := &GraphPlaneSolution{
 		VertPositions: make([]VertexPos, s.graph.NumVertices),
 		width:         s.width,
@@ -58,10 +58,10 @@ func (s *GraphPlaneSolution) Mutate() problems.Solution {
 		graph:         s.graph,
 	}
 	copy(mutant.VertPositions, s.VertPositions)
-	// pick a random vertex and change its position by a small delta
+	// pick a random vertex and change its position by a delta regulated by mutation rate
 	i := rand.Intn(s.graph.NumVertices)
-	deltaX := (rand.Float64() - 0.5) * s.width * 0.1
-	deltaY := (rand.Float64() - 0.5) * s.height * 0.1
+	deltaX := (rand.Float64() - 0.5) * s.width * rate
+	deltaY := (rand.Float64() - 0.5) * s.height * rate
 	mutant.VertPositions[i].X = math.Max(0, math.Min(s.width, mutant.VertPositions[i].X+deltaX))
 	mutant.VertPositions[i].Y = math.Max(0, math.Min(s.height, mutant.VertPositions[i].Y+deltaY))
 	return mutant

@@ -7,6 +7,6 @@ type Problem interface {
 
 type Solution interface {
 	Crossover(Solution) Solution
-	Mutate() Solution
+	Mutate(rate float64) Solution
 	Fitness() float64
 }

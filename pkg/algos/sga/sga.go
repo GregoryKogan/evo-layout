@@ -3,6 +3,7 @@ package sga
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
@@ -10,10 +11,11 @@ import (
 
 type SimpleGeneticAlgorithm struct {
 	algos.GeneticAlgorithm
-	popSize     int
-	generations int
-	bestFitness float64
-	population  []problems.Solution
+	params         SGAParams
+	generations    int
+	population     []problems.Solution
+	eliteSize      int
+	matingPoolSize int
 }
 
 type SimpleGeneticAlgorithmStep struct {
@@ -21,12 +23,13 @@ type SimpleGeneticAlgorithmStep struct {
 	Solution   problems.Solution `json:"solution"`
 }
 
-func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, popSize int, logFilepath string) *SimpleGeneticAlgorithm {
+func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, logFilepath string, params SGAParams) *SimpleGeneticAlgorithm {
 	sga := &SimpleGeneticAlgorithm{
 		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logFilepath),
-		popSize:          popSize,
+		params:           params,
 		generations:      0,
-		bestFitness:      0,
+		eliteSize:        int(float64(params.PopulationSize) * params.ElitePercentile),
+		matingPoolSize:   int(float64(params.PopulationSize) * params.MatingPoolPercentile),
 	}
 
 	sga.InitLogging()
@@ -37,15 +40,16 @@ func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, 
 
 func (sga *SimpleGeneticAlgorithm) Run() {
 	sga.InitPopulation()
-	for sga.bestFitness < sga.TargetFitness {
-		fmt.Println("Generation", sga.generations, "Best Fitness", sga.bestFitness)
+	for sga.Solution.Fitness() < sga.TargetFitness {
 		sga.Evolve()
 		sga.generations++
+		fmt.Println("Generation", sga.generations, "Best Fitness", sga.Solution.Fitness())
+		sga.LogStep(SimpleGeneticAlgorithmStep{Generation: sga.generations, Solution: sga.Solution})
 	}
 }
 
 func (sga *SimpleGeneticAlgorithm) InitPopulation() {
-	pop := make([]problems.Solution, sga.popSize)
+	pop := make([]problems.Solution, sga.params.PopulationSize)
 	for i := range pop {
 		pop[i] = sga.Problem.RandomSolution()
 	}
@@ -53,45 +57,36 @@ func (sga *SimpleGeneticAlgorithm) InitPopulation() {
 }
 
 func (sga *SimpleGeneticAlgorithm) Evolve() {
-	// evaluate current fitness and determine best solution
-	bestIndex := 0
-	bestFit := sga.population[0].Fitness()
-	for i, sol := range sga.population {
-		fit := sol.Fitness()
-		if fit > bestFit {
-			bestFit = fit
-			bestIndex = i
-		}
+	sga.evaluateGeneration()
+
+	newPopulation := make([]problems.Solution, 0, sga.params.PopulationSize)
+
+	// perform elitism
+	for range sga.eliteSize {
+		newPopulation = append(newPopulation, sga.population[len(newPopulation)])
 	}
-	sga.bestFitness = bestFit
-	sga.Solution = sga.population[bestIndex]
 
-	sga.LogStep(SimpleGeneticAlgorithmStep{Generation: sga.generations, Solution: sga.Solution})
-
-	// create new population with elitism
-	newPop := make([]problems.Solution, sga.popSize)
-	newPop[0] = sga.population[bestIndex] // carry over best solution
-
-	// generate rest of the population
-	for i := 1; i < sga.popSize; i++ {
-		// tournament selection: pick two random solutions and choose the better one
-		a := sga.population[rand.Intn(len(sga.population))]
-		b := sga.population[rand.Intn(len(sga.population))]
-		parent1 := a
-		if a.Fitness() < b.Fitness() {
-			parent1 = b
+	// generate rest of the population from mating pool
+	for len(newPopulation) < sga.params.PopulationSize {
+		p1Ind := rand.Intn(sga.matingPoolSize)
+		p2Ind := rand.Intn(sga.matingPoolSize)
+		if p1Ind == p2Ind {
+			continue
 		}
-		// select second parent
-		c := sga.population[rand.Intn(len(sga.population))]
-		d := sga.population[rand.Intn(len(sga.population))]
-		parent2 := c
-		if c.Fitness() < d.Fitness() {
-			parent2 = d
-		}
-		// create child through crossover and then mutation
+		parent1 := sga.population[p1Ind]
+		parent2 := sga.population[p2Ind]
 		child := parent1.Crossover(parent2)
-		child = child.Mutate()
-		newPop[i] = child
+		child = child.Mutate(sga.params.MutationRate)
+		newPopulation = append(newPopulation, child)
 	}
-	sga.population = newPop
+
+	sga.population = newPopulation
+}
+
+func (sga *SimpleGeneticAlgorithm) evaluateGeneration() {
+	// descending fitness
+	sort.Slice(sga.population, func(i, j int) bool {
+		return sga.population[j].Fitness() < sga.population[i].Fitness()
+	})
+	sga.Solution = sga.population[0]
 }
