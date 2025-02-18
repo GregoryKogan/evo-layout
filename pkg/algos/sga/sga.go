@@ -1,25 +1,12 @@
 package sga
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
-
-// New types for progress logging
-type BestSolutionRecord struct {
-	Generation int               `json:"generation"`
-	Solution   problems.Solution `json:"solution"`
-}
-
-type ProgressLog struct {
-	Problem       problems.Problem     `json:"problem"`
-	BestSolutions []BestSolutionRecord `json:"bestSolutions"`
-}
 
 type SimpleGeneticAlgorithm struct {
 	algos.GeneticAlgorithm
@@ -27,41 +14,33 @@ type SimpleGeneticAlgorithm struct {
 	generations int
 	bestFitness float64
 	population  []problems.Solution
-
-	// new fields for progress logging
-	progressLog  ProgressLog
-	bestSolution problems.Solution
 }
 
-func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, popSize int) *SimpleGeneticAlgorithm {
+type SimpleGeneticAlgorithmStep struct {
+	Generation int               `json:"generation"`
+	Solution   problems.Solution `json:"solution"`
+}
+
+func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, popSize int, logFilepath string) *SimpleGeneticAlgorithm {
 	sga := &SimpleGeneticAlgorithm{
-		GeneticAlgorithm: algos.GeneticAlgorithm{Problem: problem, TargetFitness: targetFitness},
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logFilepath),
 		popSize:          popSize,
 		generations:      0,
 		bestFitness:      0,
 	}
-	// Initialize progress log with problem at the top
-	sga.progressLog = ProgressLog{
-		Problem:       problem,
-		BestSolutions: []BestSolutionRecord{},
-	}
+
+	sga.InitLogging()
+	sga.LogProblem(problem)
+
 	return sga
 }
 
 func (sga *SimpleGeneticAlgorithm) Run() {
 	sga.InitPopulation()
-	// Write initial log (with the problem) to the file
-	sga.logProgress()
 	for sga.bestFitness < sga.TargetFitness {
 		fmt.Println("Generation", sga.generations, "Best Fitness", sga.bestFitness)
 		sga.Evolve()
 		sga.generations++
-		// Append the best solution for this generation
-		sga.progressLog.BestSolutions = append(sga.progressLog.BestSolutions, BestSolutionRecord{
-			Generation: sga.generations,
-			Solution:   sga.bestSolution,
-		})
-		sga.logProgress()
 	}
 }
 
@@ -85,7 +64,9 @@ func (sga *SimpleGeneticAlgorithm) Evolve() {
 		}
 	}
 	sga.bestFitness = bestFit
-	sga.bestSolution = sga.population[bestIndex]
+	sga.Solution = sga.population[bestIndex]
+
+	sga.LogStep(SimpleGeneticAlgorithmStep{Generation: sga.generations, Solution: sga.Solution})
 
 	// create new population with elitism
 	newPop := make([]problems.Solution, sga.popSize)
@@ -113,20 +94,4 @@ func (sga *SimpleGeneticAlgorithm) Evolve() {
 		newPop[i] = child
 	}
 	sga.population = newPop
-}
-
-// New method: logProgress writes the current progress to a JSON file using a relative path.
-func (sga *SimpleGeneticAlgorithm) logProgress() {
-	file, err := os.Create("results.json")
-	if err != nil {
-		fmt.Println("Error creating log file:", err)
-		return
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(sga.progressLog); err != nil {
-		fmt.Println("Error writing log:", err)
-	}
 }

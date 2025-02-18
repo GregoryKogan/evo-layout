@@ -60,8 +60,8 @@ func (s *GraphPlaneSolution) Mutate() problems.Solution {
 	copy(mutant.VertPositions, s.VertPositions)
 	// pick a random vertex and change its position by a small delta
 	i := rand.Intn(s.graph.NumVertices)
-	deltaX := (rand.Float64() - 0.5) * s.width * 1
-	deltaY := (rand.Float64() - 0.5) * s.height * 1
+	deltaX := (rand.Float64() - 0.5) * s.width * 0.1
+	deltaY := (rand.Float64() - 0.5) * s.height * 0.1
 	mutant.VertPositions[i].X = math.Max(0, math.Min(s.width, mutant.VertPositions[i].X+deltaX))
 	mutant.VertPositions[i].Y = math.Max(0, math.Min(s.height, mutant.VertPositions[i].Y+deltaY))
 	return mutant

@@ -1,31 +1,48 @@
 let problem;
 let solutions;
 let loaded = false;
+let done = false;
 
 let generation = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(18);
-  fetch("results.json").then((response) => {
-    response.json().then((data) => {
-      problem = data.problem;
-      solutions = data.bestSolutions;
+  fetch("progress-log.jsonl").then((response) => {
+    response.text().then((data) => {
+      const parsed = JSON.parse(
+        "[" +
+          data
+            .split("\n")
+            .filter((line) => line.length > 2)
+            .join(",") +
+          "]"
+      );
+      problem = parsed[0];
+      solutions = parsed.slice(1);
       loaded = true;
     });
   });
-  frameRate(10);
-  saveGif("planar-graph.gif", 9);
+  frameRate(30);
+  // saveGif("planar-graph.gif", 9);
 }
 
 function draw() {
-  if (!loaded) return;
+  if (!loaded || done) return;
+
+  const oldSolution = JSON.stringify(solutions[generation].solution);
+  while (
+    generation < solutions.length &&
+    JSON.stringify(solutions[generation].solution) === oldSolution
+  )
+    generation++;
+  if (generation >= solutions.length) {
+    done = true;
+    console.log("Animation frames", frameCount);
+    return;
+  }
+
   background(18);
-
-  generation++;
-  if (generation >= solutions.length) generation = solutions.length - 1;
-  else console.log("CUM");
-
   for (let vertex of solutions[generation].solution.vertices) {
     fill(255);
     const v = toScreenCoord(vertex.x, vertex.y);
