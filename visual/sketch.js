@@ -6,8 +6,7 @@ let done = false;
 let generation = 0;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  background(18);
+  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
   fetch("progress-log.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
