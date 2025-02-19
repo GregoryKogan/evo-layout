@@ -7,6 +7,7 @@ let generation = 0;
 
 function setup() {
   createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  textSize(32);
   fetch("progress-log.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
@@ -22,17 +23,23 @@ function setup() {
       loaded = true;
     });
   });
-  frameRate(30);
-  // saveGif("planar-graph.gif", 9);
+  frameRate(60);
+  // saveGif("planar-graph.gif", 6);
 }
 
 function draw() {
   if (!loaded || done) return;
 
-  const oldSolution = JSON.stringify(solutions[generation].solution);
+  const oldSolution = JSON.stringify([
+    solutions[generation].solution.intersections,
+    solutions[generation].solution.dispersion,
+  ]);
   while (
     generation < solutions.length &&
-    JSON.stringify(solutions[generation].solution) === oldSolution
+    JSON.stringify([
+      solutions[generation].solution.intersections,
+      solutions[generation].solution.dispersion,
+    ]) === oldSolution
   )
     generation++;
   if (generation >= solutions.length) {
@@ -42,6 +49,15 @@ function draw() {
   }
 
   background(18);
+
+  document.querySelector(
+    "#intersections"
+  ).innerHTML = `Intersections: ${solutions[generation].solution.intersections}`;
+  document.querySelector("#dispersion").innerHTML = `Dispersion: ${
+    solutions[generation].solution.dispersion *
+    (solutions[generation].solution.intersections + 1)
+  }`;
+
   for (let vertex of solutions[generation].solution.vertices) {
     fill(255);
     const v = toScreenCoord(vertex.x, vertex.y);
