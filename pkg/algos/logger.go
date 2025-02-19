@@ -46,7 +46,7 @@ func (pl *ProgressLogger) LogProblem(problem problems.Problem) {
 }
 
 func (pl *ProgressLogger) LogStep(step interface{}) {
-	go pl.log(step)
+	pl.log(step)
 }
 
 func (pl *ProgressLogger) log(obj interface{}) {
