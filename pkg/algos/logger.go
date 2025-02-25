@@ -12,7 +12,7 @@ import (
 type ProgressLoggerProvider interface {
 	InitLogging()
 	LogProblem(problem problems.Problem)
-	LogStep(step interface{})
+	LogStep(step any)
 }
 
 type ProgressLogger struct {
@@ -28,6 +28,13 @@ func NewProgressLogger(filepath string) ProgressLoggerProvider {
 func (pl *ProgressLogger) InitLogging() {
 	if pl.filepath == "" {
 		pl.filepath = "progress-log.jsonl"
+	}
+
+	if _, err := os.Stat(pl.filepath); !errors.Is(err, os.ErrNotExist) {
+		err = os.Remove(pl.filepath)
+		if err != nil {
+			panic(fmt.Sprintf("error removing old log file: %v", err))
+		}
 	}
 
 	if _, err := os.Stat(pl.filepath); errors.Is(err, os.ErrNotExist) {
