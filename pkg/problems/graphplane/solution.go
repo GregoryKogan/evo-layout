@@ -64,7 +64,7 @@ func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
 
 	intersectionWeights := s.calculateIntersectionWeights()
 	selectedVertex := weightedRandomSelect(intersectionWeights)
-
+	// TODO: only one vertex is modified. Should be able to change multiple depending on mutation rate
 	deltaX, deltaY := calculateMutationDeltas(rate, s.width, s.height)
 	mutant.applyMutation(selectedVertex, deltaX, deltaY)
 
