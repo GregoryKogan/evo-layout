@@ -45,11 +45,11 @@ func (pl *ProgressLogger) LogProblem(problem problems.Problem) {
 	pl.log(problem)
 }
 
-func (pl *ProgressLogger) LogStep(step interface{}) {
+func (pl *ProgressLogger) LogStep(step any) {
 	pl.log(step)
 }
 
-func (pl *ProgressLogger) log(obj interface{}) {
+func (pl *ProgressLogger) log(obj any) {
 	file, err := os.OpenFile(pl.filepath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
