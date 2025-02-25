@@ -41,10 +41,10 @@ func RandomGraphPlaneSolution(g *Graph, width, height float64) problems.Solution
 	return s
 }
 
-func (s *GraphPlaneSolution) Crossover(other problems.Solution) problems.Solution {
+func (s *GraphPlaneSolution) Crossover(other problems.Solution) []problems.Solution {
 	otherGPS, ok := other.(*GraphPlaneSolution)
 	if !ok {
-		return s
+		return []problems.Solution{s}
 	}
 
 	child := newSolutionBase(s)
@@ -55,7 +55,7 @@ func (s *GraphPlaneSolution) Crossover(other problems.Solution) problems.Solutio
 			child.VertPositions[i] = otherGPS.VertPositions[i]
 		}
 	}
-	return child
+	return []problems.Solution{child}
 }
 
 func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/knapsack"
 )
@@ -11,19 +14,26 @@ func main() {
 	// problem := graphplane.NewGraphPlaneProblem(numVertices, edgeFill, 1.0, 1.0)
 	problem := knapsack.NewKnapsackProblem(knapsack.KnapsackProblemParams{
 		Dimensions:         2,
-		ItemsNum:           100,
+		ItemsNum:           10000,
 		InitialMaxValue:    100,
 		InitialMaxResource: 100,
-		InitialMaxAmount:   10,
-		Constraints:        []int{3000},
+		// Constraints:        []int{300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000},
+		Constraints: []int{300000},
 	})
 
-	targetFitness := 1_000_000_000.0
+	algoSolution := problem.AlgorithmicSolution()
+	fmt.Println(algoSolution.Fitness())
+
+	lg := algos.NewProgressLogger("algo-solution.jsonl")
+	lg.InitLogging()
+	lg.Log(algoSolution)
+
+	targetFitness := algoSolution.Fitness() * 0.95
 	params := sga.SGAParams{
-		PopulationSize:       10000,
+		PopulationSize:       1000,
 		ElitePercentile:      0.1,
 		MatingPoolPercentile: 0.5,
-		MutationRate:         0.05,
+		MutationRate:         0.0001,
 	}
 	ga := sga.NewSimpleGeneticAlgorithm(problem, targetFitness, "knapsack.jsonl", params)
 	ga.Run()

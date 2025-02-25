@@ -75,9 +75,11 @@ func (sga *SimpleGeneticAlgorithm) Evolve() {
 		}
 		parent1 := sga.population[p1Ind]
 		parent2 := sga.population[p2Ind]
-		child := parent1.Crossover(parent2)
-		child = child.Mutate(sga.params.MutationRate)
-		newPopulation = append(newPopulation, child)
+		children := parent1.Crossover(parent2)
+		for i := range children {
+			children[i] = children[i].Mutate(sga.params.MutationRate)
+		}
+		newPopulation = append(newPopulation, children...)
 	}
 
 	sga.population = newPopulation

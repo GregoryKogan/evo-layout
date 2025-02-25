@@ -13,6 +13,7 @@ type ProgressLoggerProvider interface {
 	InitLogging()
 	LogProblem(problem problems.Problem)
 	LogStep(step any)
+	Log(obj any)
 }
 
 type ProgressLogger struct {
@@ -49,14 +50,14 @@ func (pl *ProgressLogger) InitLogging() {
 }
 
 func (pl *ProgressLogger) LogProblem(problem problems.Problem) {
-	pl.log(problem)
+	pl.Log(problem)
 }
 
 func (pl *ProgressLogger) LogStep(step any) {
-	pl.log(step)
+	pl.Log(step)
 }
 
-func (pl *ProgressLogger) log(obj any) {
+func (pl *ProgressLogger) Log(obj any) {
 	file, err := os.OpenFile(pl.filepath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
