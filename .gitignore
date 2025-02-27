@@ -1,1 +1,4 @@
 .vscode
+*.jsonl
+*.csv
+.DS_Store
