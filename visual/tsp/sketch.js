@@ -20,13 +20,17 @@ function setup() {
           "]"
       );
       problem = parsed[0];
-      algoSolution = parsed[1];
-      solutions = parsed.slice(2);
+      if (parsed[1].took !== undefined) {
+        algoSolution = parsed[1].solution;
+        solutions = parsed.slice(2);
+      } else {
+        solutions = parsed.slice(1);
+      }
       loaded = true;
     });
   });
-  frameRate(5);
-  saveGif("planar-graph.gif", 30);
+  frameRate(3);
+  // saveGif("planar-graph.gif", 8);
 }
 
 function draw() {
@@ -53,10 +57,21 @@ function draw() {
     circle(v.x, v.y, 10);
   }
 
+  if (algoSolution) drawSolution(algoSolution, "#00ff00");
+  drawSolution(solution, 255);
+}
+
+function toScreenCoord(x, y) {
+  x /= 100;
+  y /= 100;
+  return createVector(50 + x * (width - 100), 50 + y * (height - 100));
+}
+
+function drawSolution(solution, color) {
   let curCity = problem.cities[0];
   for (let cityInd of solution.order) {
     const city = problem.cities[cityInd];
-    stroke(255);
+    stroke(color);
     strokeWeight(2);
     line(
       toScreenCoord(curCity.lat, curCity.lon).x,
@@ -72,10 +87,4 @@ function draw() {
     toScreenCoord(problem.cities[0].lat, problem.cities[0].lon).x,
     toScreenCoord(problem.cities[0].lat, problem.cities[0].lon).y
   );
-}
-
-function toScreenCoord(x, y) {
-  x /= 100;
-  y /= 100;
-  return createVector(50 + x * (width - 100), 50 + y * (height - 100));
 }
