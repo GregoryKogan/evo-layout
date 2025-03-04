@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"time"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
@@ -19,32 +20,34 @@ type SimpleGeneticAlgorithm struct {
 }
 
 type SimpleGeneticAlgorithmStep struct {
-	Generation int               `json:"generation"`
-	Solution   problems.Solution `json:"solution"`
+	algos.GeneticAlgorithmStep
+	Generation int `json:"generation"`
 }
 
-func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, logFilepath string, params SGAParams) *SimpleGeneticAlgorithm {
-	sga := &SimpleGeneticAlgorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logFilepath),
+func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, params SGAParams, logger algos.ProgressLoggerProvider) *SimpleGeneticAlgorithm {
+	return &SimpleGeneticAlgorithm{
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logger),
 		params:           params,
 		generations:      0,
 		eliteSize:        int(float64(params.PopulationSize) * params.ElitePercentile),
 		matingPoolSize:   int(float64(params.PopulationSize) * params.MatingPoolPercentile),
 	}
-
-	sga.InitLogging()
-	sga.LogProblem(problem)
-
-	return sga
 }
 
 func (sga *SimpleGeneticAlgorithm) Run() {
 	sga.InitPopulation()
-	for sga.Solution.Fitness() < sga.TargetFitness {
+	for fitness := 0.0; fitness < sga.TargetFitness; {
 		sga.Evolve()
 		sga.generations++
-		fmt.Println("Generation", sga.generations, "Best Fitness", sga.Solution.Fitness())
-		sga.LogStep(SimpleGeneticAlgorithmStep{Generation: sga.generations, Solution: sga.Solution})
+		bestFitness := sga.Solution.Fitness()
+		fmt.Println("Generation", sga.generations, "Best Fitness", bestFitness)
+		if fitness != bestFitness {
+			fitness = bestFitness
+			sga.LogStep(SimpleGeneticAlgorithmStep{
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(sga.StartTimestamp), Solution: sga.Solution},
+				Generation:           sga.generations,
+			})
+		}
 	}
 }
 
