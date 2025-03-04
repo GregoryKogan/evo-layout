@@ -1,6 +1,8 @@
 package tsp
 
 import (
+	"time"
+
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
@@ -37,7 +39,9 @@ func (p *TSProblem) RandomSolution() problems.Solution {
 	return RandomTSPSolution(p.Params, p.Cities)
 }
 
-func (p *TSProblem) AlgorithmicSolution() problems.Solution {
+func (p *TSProblem) AlgorithmicSolution() problems.AlgorithmicSolution {
+	start := time.Now()
+
 	cities := make([]int, p.Params.CitiesNum-1)
 	for i := range p.Params.CitiesNum - 1 {
 		cities[i] = i + 1
@@ -51,7 +55,10 @@ func (p *TSProblem) AlgorithmicSolution() problems.Solution {
 		}
 	}
 
-	return &bestSolution
+	return problems.AlgorithmicSolution{
+		Solution: &bestSolution,
+		TimeTook: time.Since(start),
+	}
 }
 
 func permutations(arr []int) [][]int {

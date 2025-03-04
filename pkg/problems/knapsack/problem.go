@@ -1,6 +1,8 @@
 package knapsack
 
 import (
+	"time"
+
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
@@ -47,7 +49,9 @@ func (p *KnapsackProblem) RandomSolution() problems.Solution {
 	return RandomKnapsackSolution(p.Params, p.Items)
 }
 
-func (p *KnapsackProblem) AlgorithmicSolution() problems.Solution {
+func (p *KnapsackProblem) AlgorithmicSolution() problems.AlgorithmicSolution {
+	start := time.Now()
+
 	if p.Params.Dimensions != 2 {
 		panic("Algorithmic solutions available only for 2D knapsack problem")
 	}
@@ -89,5 +93,8 @@ func (p *KnapsackProblem) AlgorithmicSolution() problems.Solution {
 		}
 	}
 
-	return &KnapsackSolution{problemParams: p.Params, items: p.Items, Bits: selectedBits}
+	return problems.AlgorithmicSolution{
+		Solution: &KnapsackSolution{problemParams: p.Params, items: p.Items, Bits: selectedBits},
+		TimeTook: time.Since(start),
+	}
 }
