@@ -65,9 +65,7 @@ func (sga *SimpleGeneticAlgorithm) Evolve() {
 	newPopulation := make([]problems.Solution, 0, sga.params.PopulationSize)
 
 	// perform elitism
-	for range sga.eliteSize {
-		newPopulation = append(newPopulation, sga.population[len(newPopulation)])
-	}
+	newPopulation = append(newPopulation, sga.population[:sga.eliteSize]...)
 
 	// generate rest of the population from mating pool
 	for len(newPopulation) < sga.params.PopulationSize {
