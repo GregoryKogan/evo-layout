@@ -2,3 +2,4 @@
 *.jsonl
 *.csv
 .DS_Store
+logs
