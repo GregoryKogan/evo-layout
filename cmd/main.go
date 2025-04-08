@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/tsp"
 )
 
@@ -25,24 +25,17 @@ func main() {
 	// })
 
 	// TSP
-	problem := tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 12})
+	problem := tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 100})
 
 	lg := algos.NewProgressLogger(fmt.Sprintf("%s.jsonl", problem.Name()))
 	lg.InitLogging()
 	lg.LogProblem(problem)
 
-	algoSolution := problem.AlgorithmicSolution()
-	fmt.Println("Algorithm:", algoSolution.Fitness())
-	lg.Log(algoSolution)
-
-	targetFitness := algoSolution.Fitness() * 0.99
-	// targetFitness := 1.0
-	params := sga.SGAParams{
-		PopulationSize:       1000,
-		ElitePercentile:      0.1,
-		MatingPoolPercentile: 0.5,
-		MutationRate:         0.01,
+	targetFitness := 1.0
+	params := ssga.Params{
+		PopulationSize: 3000,
+		MutationRate:   0.02,
 	}
-	ga := sga.NewSimpleGeneticAlgorithm(problem, targetFitness, params, lg)
+	ga := ssga.NewAlgorithm(problem, targetFitness, params, lg)
 	ga.Run()
 }
