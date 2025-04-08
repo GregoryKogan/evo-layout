@@ -1,6 +1,6 @@
 package sga
 
-type SGAParams struct {
+type Params struct {
 	PopulationSize       int
 	ElitePercentile      float64
 	MatingPoolPercentile float64

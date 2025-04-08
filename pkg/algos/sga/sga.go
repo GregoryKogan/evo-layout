@@ -2,7 +2,7 @@ package sga
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"time"
 
@@ -10,22 +10,22 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
-type SimpleGeneticAlgorithm struct {
+type Algorithm struct {
 	algos.GeneticAlgorithm
-	params         SGAParams
+	params         Params
 	generations    int
 	population     []problems.Solution
 	eliteSize      int
 	matingPoolSize int
 }
 
-type SimpleGeneticAlgorithmStep struct {
+type Step struct {
 	algos.GeneticAlgorithmStep
 	Generation int `json:"generation"`
 }
 
-func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, params SGAParams, logger algos.ProgressLoggerProvider) *SimpleGeneticAlgorithm {
-	return &SimpleGeneticAlgorithm{
+func NewAlgorithm(problem problems.Problem, targetFitness float64, params Params, logger algos.ProgressLoggerProvider) *Algorithm {
+	return &Algorithm{
 		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logger),
 		params:           params,
 		generations:      0,
@@ -34,62 +34,62 @@ func NewSimpleGeneticAlgorithm(problem problems.Problem, targetFitness float64, 
 	}
 }
 
-func (sga *SimpleGeneticAlgorithm) Run() {
-	sga.InitPopulation()
-	for fitness := 0.0; fitness < sga.TargetFitness; {
-		sga.Evolve()
-		sga.generations++
-		bestFitness := sga.Solution.Fitness()
-		fmt.Println("Generation", sga.generations, "Best Fitness", bestFitness)
+func (alg *Algorithm) Run() {
+	alg.InitPopulation()
+	for fitness := 0.0; fitness < alg.TargetFitness; {
+		alg.Evolve()
+		alg.generations++
+		bestFitness := alg.Solution.Fitness()
+		fmt.Println("Generation", alg.generations, "Best Fitness", bestFitness)
 		if fitness != bestFitness {
 			fitness = bestFitness
-			sga.LogStep(SimpleGeneticAlgorithmStep{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(sga.StartTimestamp), Solution: sga.Solution},
-				Generation:           sga.generations,
+			alg.LogStep(Step{
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
+				Generation:           alg.generations,
 			})
 		}
 	}
 }
 
-func (sga *SimpleGeneticAlgorithm) InitPopulation() {
-	pop := make([]problems.Solution, sga.params.PopulationSize)
+func (alg *Algorithm) InitPopulation() {
+	pop := make([]problems.Solution, alg.params.PopulationSize)
 	for i := range pop {
-		pop[i] = sga.Problem.RandomSolution()
+		pop[i] = alg.Problem.RandomSolution()
 	}
-	sga.population = pop
+	alg.population = pop
 }
 
-func (sga *SimpleGeneticAlgorithm) Evolve() {
-	sga.evaluateGeneration()
+func (alg *Algorithm) Evolve() {
+	alg.evaluateGeneration()
 
-	newPopulation := make([]problems.Solution, 0, sga.params.PopulationSize)
+	newPopulation := make([]problems.Solution, 0, alg.params.PopulationSize)
 
 	// perform elitism
-	newPopulation = append(newPopulation, sga.population[:sga.eliteSize]...)
+	newPopulation = append(newPopulation, alg.population[:alg.eliteSize]...)
 
 	// generate rest of the population from mating pool
-	for len(newPopulation) < sga.params.PopulationSize {
-		p1Ind := rand.Intn(sga.matingPoolSize)
-		p2Ind := rand.Intn(sga.matingPoolSize)
+	for len(newPopulation) < alg.params.PopulationSize {
+		p1Ind := rand.IntN(alg.matingPoolSize)
+		p2Ind := rand.IntN(alg.matingPoolSize)
 		if p1Ind == p2Ind {
 			continue
 		}
-		parent1 := sga.population[p1Ind]
-		parent2 := sga.population[p2Ind]
+		parent1 := alg.population[p1Ind]
+		parent2 := alg.population[p2Ind]
 		children := parent1.Crossover(parent2)
 		for i := range children {
-			children[i] = children[i].Mutate(sga.params.MutationRate)
+			children[i] = children[i].Mutate(alg.params.MutationRate)
 		}
 		newPopulation = append(newPopulation, children...)
 	}
 
-	sga.population = newPopulation
+	alg.population = newPopulation
 }
 
-func (sga *SimpleGeneticAlgorithm) evaluateGeneration() {
+func (alg *Algorithm) evaluateGeneration() {
 	// descending fitness
-	sort.Slice(sga.population, func(i, j int) bool {
-		return sga.population[j].Fitness() < sga.population[i].Fitness()
+	sort.Slice(alg.population, func(i, j int) bool {
+		return alg.population[j].Fitness() < alg.population[i].Fitness()
 	})
-	sga.Solution = sga.population[0]
+	alg.Solution = alg.population[0]
 }
