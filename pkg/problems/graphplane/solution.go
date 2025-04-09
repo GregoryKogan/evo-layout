@@ -8,12 +8,10 @@ import (
 )
 
 type GraphPlaneSolution struct {
-	graph         *Graph
-	width, height float64
-	cachedFitness float64
-	VertPositions []VertexPos `json:"vertices"`
-	Intersections int         `json:"intersections"`
-	Dispersion    float64     `json:"dispersion"`
+	graph            *Graph
+	width, height    float64
+	CachedObjectives []float64   `json:"objectives"`
+	VertPositions    []VertexPos `json:"vertices"`
 }
 
 type VertexPos struct {
@@ -71,14 +69,19 @@ func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
 	return mutant
 }
 
-func (s *GraphPlaneSolution) Fitness() float64 {
-	if s.cachedFitness > 0 {
-		return s.cachedFitness
+func (s *GraphPlaneSolution) Objectives() []float64 {
+	if len(s.CachedObjectives) > 0 {
+		return s.CachedObjectives
 	}
-	s.Intersections = s.countIntersections()
-	s.Dispersion = s.calculateDispersionPenalty()
-	s.cachedFitness = 1.0 / (float64(s.Intersections) + float64(s.Intersections+1)*s.Dispersion)
-	return s.cachedFitness
+	intersections := float64(s.countIntersections())
+	dispersion := s.calculateDispersionPenalty()
+	s.CachedObjectives = []float64{intersections, 1.0 / (dispersion + 1)}
+	return s.CachedObjectives
+}
+
+func (s *GraphPlaneSolution) Fitness() float64 {
+	objectives := s.Objectives()
+	return objectives[0] + (objectives[0]+1.0)*objectives[1]
 }
 
 func (s *GraphPlaneSolution) calculateIntersectionWeights() []float64 {

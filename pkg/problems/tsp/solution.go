@@ -98,6 +98,10 @@ func (s *TSPSolution) Fitness() float64 {
 	}
 	totalLength += curCity.Distance(s.cities[0])
 
-	s.CachedFitness = 1.0 / totalLength
+	s.CachedFitness = totalLength
 	return s.CachedFitness
+}
+
+func (s *TSPSolution) Objectives() []float64 {
+	return []float64{s.Fitness()}
 }

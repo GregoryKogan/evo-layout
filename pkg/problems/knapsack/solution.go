@@ -2,15 +2,16 @@ package knapsack
 
 import (
 	"math/rand/v2"
+	"slices"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
 type KnapsackSolution struct {
-	problemParams KnapsackProblemParams
-	items         []Item
-	Bits          []bool  `json:"bits"`
-	CachedFitness float64 `json:"fitness"`
+	problemParams    KnapsackProblemParams
+	items            []Item
+	Bits             []bool    `json:"bits"`
+	CachedObjectives []float64 `json:"objectives"`
 }
 
 func RandomKnapsackSolution(problemParams KnapsackProblemParams, items []Item) problems.Solution {
@@ -61,14 +62,13 @@ func (s *KnapsackSolution) Mutate(rate float64) problems.Solution {
 	return &KnapsackSolution{problemParams: s.problemParams, items: s.items, Bits: mutantBits}
 }
 
-func (s *KnapsackSolution) Fitness() float64 {
-	if s.CachedFitness != 0 {
-		return s.CachedFitness
+func (s *KnapsackSolution) Objectives() []float64 {
+	if len(s.CachedObjectives) > 0 {
+		return s.CachedObjectives
 	}
 
 	totalValue := 0
 	resources := make([]int, s.problemParams.Dimensions-1)
-
 	for i := range s.problemParams.ItemsNum {
 		if s.Bits[i] {
 			totalValue += s.items[i].Value
@@ -78,14 +78,18 @@ func (s *KnapsackSolution) Fitness() float64 {
 		}
 	}
 
-	fitness := float64(totalValue)
+	objectives := make([]float64, s.problemParams.Dimensions)
+	objectives[0] = 1.0 / float64(totalValue)
 	for ri := range s.problemParams.Dimensions - 1 {
 		if resources[ri] > s.problemParams.Constraints[ri] {
-			fitness = 0.0
-			break
+			objectives[ri+1] = 1.0
 		}
 	}
 
-	s.CachedFitness = fitness
-	return fitness
+	s.CachedObjectives = objectives
+	return s.CachedObjectives
+}
+
+func (s *KnapsackSolution) Fitness() float64 {
+	return slices.Max(s.Objectives())
 }

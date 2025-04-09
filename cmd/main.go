@@ -33,8 +33,6 @@ func main() {
 	}
 
 	// Define algorithm constructors.
-	// Each algorithm is configured with example parameters and a target fitness of 1.0.
-	targetFitness := 1.0
 	algorithmsList := []struct {
 		name    string
 		runFunc func(problem problems.Problem, logger algos.ProgressLoggerProvider)
@@ -48,7 +46,7 @@ func main() {
 					MatingPoolPercentile: 0.5,
 					MutationRate:         0.01,
 				}
-				alg := sga.NewAlgorithm(problem, targetFitness, params, logger)
+				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
@@ -59,7 +57,7 @@ func main() {
 					PopulationSize: 1000,
 					MutationRate:   0.01,
 				}
-				alg := ssga.NewAlgorithm(problem, targetFitness, params, logger)
+				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},

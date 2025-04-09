@@ -1,7 +1,6 @@
 package ssga
 
 import (
-	"fmt"
 	"math/rand/v2"
 	"sort"
 	"time"
@@ -24,12 +23,12 @@ type Step struct {
 
 func NewAlgorithm(
 	problem problems.Problem,
-	targetFitness float64,
+	timeout time.Duration,
 	params Params,
 	logger algos.ProgressLoggerProvider,
 ) *Algorithm {
 	return &Algorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, targetFitness, logger),
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
 		params:           params,
 		iterations:       0,
 	}
@@ -37,11 +36,11 @@ func NewAlgorithm(
 
 func (alg *Algorithm) Run() {
 	alg.InitPopulation()
-	for fitness := 0.0; fitness < alg.TargetFitness; {
+	fitness := 0.0
+	for time.Since(alg.StartTimestamp) < alg.Timeout {
 		alg.Evolve()
 		alg.iterations++
 		bestFitness := alg.Solution.Fitness()
-		fmt.Println("Iteration", alg.iterations, "Best Fitness", bestFitness)
 		if fitness != bestFitness {
 			fitness = bestFitness
 			alg.LogStep(Step{
@@ -84,7 +83,7 @@ func (alg *Algorithm) Evolve() {
 func (alg *Algorithm) evaluateGeneration() {
 	// descending fitness
 	sort.Slice(alg.population, func(i, j int) bool {
-		return alg.population[j].Fitness() < alg.population[i].Fitness()
+		return alg.population[i].Fitness() < alg.population[j].Fitness()
 	})
 	alg.Solution = alg.population[0]
 }

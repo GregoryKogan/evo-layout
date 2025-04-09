@@ -9,9 +9,9 @@ import (
 type GeneticAlgorithm struct {
 	ProgressLoggerProvider
 	StartTimestamp time.Time
+	Timeout        time.Duration
 	Problem        problems.Problem
 	Solution       problems.Solution
-	TargetFitness  float64
 }
 
 type GeneticAlgorithmStep struct {
@@ -19,12 +19,12 @@ type GeneticAlgorithmStep struct {
 	Solution problems.Solution `json:"solution"`
 }
 
-func NewGeneticAlgorithm(problem problems.Problem, targetFitness float64, logger ProgressLoggerProvider) *GeneticAlgorithm {
+func NewGeneticAlgorithm(problem problems.Problem, timeout time.Duration, logger ProgressLoggerProvider) *GeneticAlgorithm {
 	return &GeneticAlgorithm{
 		StartTimestamp:         time.Now(),
+		Timeout:                timeout,
 		ProgressLoggerProvider: logger,
 		Problem:                problem,
 		Solution:               problem.RandomSolution(),
-		TargetFitness:          targetFitness,
 	}
 }
