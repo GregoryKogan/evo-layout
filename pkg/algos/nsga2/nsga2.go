@@ -19,22 +19,22 @@ type Individual struct {
 
 // NSGA2Algorithm implements the NSGA-II multiobjective evolutionary algorithm.
 type NSGA2Algorithm struct {
-	algos.GeneticAlgorithm // embedded common fields (start, timeout, logger, problem, etc.)
+	algos.GeneticAlgorithm // embedded common fields (start time, timeout, logger, problem, etc.)
 	params                 NSGA2Params
 	generation             int
 	population             []Individual
 }
 
 // NewAlgorithm creates a new NSGA-II instance.
-func NewAlgorithm(problem problems.Problem, params NSGA2Params, logger algos.ProgressLoggerProvider) *NSGA2Algorithm {
+func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2Params, logger algos.ProgressLoggerProvider) *NSGA2Algorithm {
 	return &NSGA2Algorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, 0, logger), // timeout not used here; you can choose to add it.
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
 		params:           params,
 		generation:       0,
 	}
 }
 
-// Run executes the NSGA-II process
+// Run executes the NSGA-II process until timeout.
 func (alg *NSGA2Algorithm) Run() {
 	alg.initPopulation()
 	for time.Since(alg.StartTimestamp) < alg.Timeout {
@@ -49,10 +49,9 @@ func (alg *NSGA2Algorithm) Run() {
 		nextPopulation := make([]Individual, 0, alg.params.PopulationSize)
 		for _, front := range fronts {
 			computeCrowdingDistance(front)
-			// If adding the full front would exceed population, sort by distance and pick the best individuals.
+			// If adding the full front would exceed population, sort by crowding distance.
 			if len(nextPopulation)+len(front) > alg.params.PopulationSize {
 				sort.Slice(front, func(i, j int) bool {
-					// Higher crowding distance is preferred.
 					return front[i].CrowdingDistance > front[j].CrowdingDistance
 				})
 				remaining := alg.params.PopulationSize - len(nextPopulation)
@@ -64,14 +63,22 @@ func (alg *NSGA2Algorithm) Run() {
 		}
 		alg.population = nextPopulation
 
-		// Log best solution from the first front.
-		if len(fronts) > 0 && len(fronts[0]) > 0 {
+		// Log current generation data: record generation number and the Pareto front (list of f1, f2 pairs)
+		if len(fronts) > 0 {
+			var pareto []map[string]float64
+			for _, ind := range fronts[0] {
+				objs := ind.Solution.Objectives()
+				pareto = append(pareto, map[string]float64{
+					"f1": objs[0],
+					"f2": objs[1],
+				})
+			}
 			alg.LogStep(struct {
-				Generation int               `json:"generation"`
-				Best       problems.Solution `json:"best_solution"`
+				Generation  int                  `json:"generation"`
+				ParetoFront []map[string]float64 `json:"pareto_front"`
 			}{
-				Generation: alg.generation,
-				Best:       fronts[0][0].Solution,
+				Generation:  alg.generation,
+				ParetoFront: pareto,
 			})
 		}
 	}
@@ -90,7 +97,7 @@ func (alg *NSGA2Algorithm) makeOffspring() []Individual {
 	offspring := make([]Individual, 0, alg.params.PopulationSize)
 	// Create offspring equal to population size.
 	for len(offspring) < alg.params.PopulationSize {
-		// Select two parents using NSGA-II tournament selection.
+		// Select two parents using tournament selection.
 		parent1 := tournamentSelection(alg.population)
 		parent2 := tournamentSelection(alg.population)
 
@@ -113,34 +120,29 @@ func (alg *NSGA2Algorithm) makeOffspring() []Individual {
 	return offspring
 }
 
-// tournamentSelection picks one individual from the population using binary tournament selection.
+// tournamentSelection picks one individual using binary tournament selection.
 func tournamentSelection(pop []Individual) Individual {
 	i := rand.IntN(len(pop))
 	j := rand.IntN(len(pop))
 	ind1, ind2 := pop[i], pop[j]
-	// Compare based on rank first (lower is better) then by crowding distance.
+	// Compare by rank (lower is better) then crowding distance.
 	if ind1.Rank < ind2.Rank {
 		return ind1
 	} else if ind1.Rank > ind2.Rank {
 		return ind2
 	}
-	// If the same rank, choose the one with a larger crowding distance.
 	if ind1.CrowdingDistance > ind2.CrowdingDistance {
 		return ind1
 	}
 	return ind2
 }
 
-// fastNonDominatedSort performs the fast non-dominated sort on the population.
-// Returns a slice of fronts, where each front is a slice of Individuals.
+// fastNonDominatedSort performs fast non-dominated sort.
 func fastNonDominatedSort(pop []Individual) [][]Individual {
 	fronts := [][]Individual{}
-	// For each individual, initialize the domination count and set of individuals it dominates.
 	n := len(pop)
 	domCount := make([]int, n)
 	dominatedSet := make([][]int, n)
-	rank := make([]int, n)
-
 	for i := range n {
 		dominatedSet[i] = []int{}
 		for j := range n {
@@ -153,22 +155,17 @@ func fastNonDominatedSort(pop []Individual) [][]Individual {
 				domCount[i]++
 			}
 		}
-		if domCount[i] == 0 {
-			rank[i] = 0
-			pop[i].Rank = 0
-		}
 	}
-
-	// Collect the first front.
 	currentFront := []int{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if domCount[i] == 0 {
+			pop[i].Rank = 0
 			currentFront = append(currentFront, i)
 		}
 	}
-	var curRank int
+	curRank := 0
 	for len(currentFront) > 0 {
-		front := []Individual{}
+		var front []Individual
 		nextFront := []int{}
 		for _, i := range currentFront {
 			pop[i].Rank = curRank
@@ -187,25 +184,20 @@ func fastNonDominatedSort(pop []Individual) [][]Individual {
 	return fronts
 }
 
-// computeCrowdingDistance calculates the crowding distance for each individual in the front.
+// computeCrowdingDistance calculates crowding distances for a front.
 func computeCrowdingDistance(front []Individual) {
 	l := len(front)
 	if l == 0 {
 		return
 	}
-	// Initialize distances to zero.
 	for i := range front {
 		front[i].CrowdingDistance = 0
 	}
-	// Get objectives from the first solution as representative.
-	firstObjs := front[0].Solution.Objectives()
-	numObjs := len(firstObjs)
-	// For each objective, sort the front and update distances.
+	numObjs := len(front[0].Solution.Objectives())
 	for m := range numObjs {
 		sort.Slice(front, func(i, j int) bool {
 			return front[i].Solution.Objectives()[m] < front[j].Solution.Objectives()[m]
 		})
-		// Set boundary points to infinite distance.
 		front[0].CrowdingDistance = math.Inf(1)
 		front[l-1].CrowdingDistance = math.Inf(1)
 		objMin := front[0].Solution.Objectives()[m]
@@ -221,8 +213,7 @@ func computeCrowdingDistance(front []Individual) {
 	}
 }
 
-// dominates returns true if solution a dominates solution b.
-// Note that in minimization, a dominates b if all objectives of a are less than or equal to those of b, with at least one strictly less.
+// dominates returns true if solution a dominates solution b (minimization).
 func dominates(a, b problems.Solution) bool {
 	aObjs := a.Objectives()
 	bObjs := b.Objectives()

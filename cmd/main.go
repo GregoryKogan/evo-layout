@@ -7,29 +7,33 @@ import (
 	"time"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/knapsack"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/tsp"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/zdt"
 )
 
 func main() {
-	// Define 5 minute timeout for every algorithm run.
+	// Define timeout for every algorithm run.
 	timeLimit := 1 * time.Minute
 
 	// Define problem instances.
 	problemsList := []problems.Problem{
-		graphplane.NewGraphPlaneProblem(12, 0.35, 100.0, 100.0),
-		knapsack.NewKnapsackProblem(knapsack.KnapsackProblemParams{
-			Dimensions:         2,
-			ItemsNum:           1000,
-			InitialMaxValue:    100,
-			InitialMaxResource: 100,
-			Constraints:        []int{300000},
-		}),
-		tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 50}),
+		// graphplane.NewGraphPlaneProblem(12, 0.35, 100.0, 100.0),
+		// knapsack.NewKnapsackProblem(knapsack.KnapsackProblemParams{
+		// 	Dimensions:         10,
+		// 	ItemsNum:           1000,
+		// 	InitialMaxValue:    100,
+		// 	InitialMaxResource: 100,
+		// 	Constraints:        []int{30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000},
+		// }),
+		// tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 100}),
+		zdt.NewZDT1Problem(30), // 30-dimensional ZDT1
+		zdt.NewZDT2Problem(30),
+		zdt.NewZDT3Problem(30),
+		zdt.NewZDT4Problem(30),
+		zdt.NewZDT6Problem(30),
 	}
 
 	// Define algorithm constructors.
@@ -44,7 +48,7 @@ func main() {
 					PopulationSize:       1000,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
-					MutationRate:         0.01,
+					MutationRate:         0.02,
 				}
 				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
@@ -55,15 +59,29 @@ func main() {
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := ssga.Params{
 					PopulationSize: 1000,
-					MutationRate:   0.01,
+					MutationRate:   0.02,
 				}
 				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg.Run()
+			},
+		},
+		{
+			"NSGA2",
+			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+				// Configure NSGA-II parameters.
+				params := nsga2.NSGA2Params{
+					PopulationSize: 100,
+					CrossoverProb:  0.9,
+					MutationProb:   0.1,
+				}
+				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 	}
 
 	// Create a directory for logs.
+	os.RemoveAll("logs")
 	os.Mkdir("logs", 0755)
 
 	// Loop over every problem and algorithm.
