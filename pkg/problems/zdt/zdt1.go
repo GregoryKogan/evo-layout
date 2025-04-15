@@ -61,7 +61,7 @@ func (s *ZDT1Solution) Crossover(other problems.Solution) []problems.Solution {
 
 	child1X := make([]float64, s.Dimensions)
 	child2X := make([]float64, s.Dimensions)
-	for i := 0; i < s.Dimensions; i++ {
+	for i := range s.Dimensions {
 		if rand.Float64() < 0.5 {
 			child1X[i] = s.X[i]
 			child2X[i] = otherZDT.X[i]
@@ -80,7 +80,7 @@ func (s *ZDT1Solution) Crossover(other problems.Solution) []problems.Solution {
 func (s *ZDT1Solution) Mutate(rate float64) problems.Solution {
 	mutantX := make([]float64, s.Dimensions)
 	copy(mutantX, s.X)
-	for i := 0; i < s.Dimensions; i++ {
+	for i := range s.Dimensions {
 		if rand.Float64() < rate {
 			// Add a normally distributed perturbation (scale factor is arbitrary).
 			delta := rand.NormFloat64() * 0.1

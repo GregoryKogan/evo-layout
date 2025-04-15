@@ -54,7 +54,7 @@ func (s *ZDT6Solution) Crossover(other problems.Solution) []problems.Solution {
 	}
 	child1 := make([]float64, s.Dimensions)
 	child2 := make([]float64, s.Dimensions)
-	for i := 0; i < s.Dimensions; i++ {
+	for i := range s.Dimensions {
 		if rand.Float64() < 0.5 {
 			child1[i] = s.X[i]
 			child2[i] = otherSol.X[i]
@@ -72,7 +72,7 @@ func (s *ZDT6Solution) Crossover(other problems.Solution) []problems.Solution {
 func (s *ZDT6Solution) Mutate(rate float64) problems.Solution {
 	mutant := make([]float64, s.Dimensions)
 	copy(mutant, s.X)
-	for i := 0; i < s.Dimensions; i++ {
+	for i := range s.Dimensions {
 		if rand.Float64() < rate {
 			delta := rand.NormFloat64() * 0.1
 			mutant[i] += delta

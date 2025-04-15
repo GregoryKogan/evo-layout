@@ -58,7 +58,7 @@ func (s *ZDT4Solution) Crossover(other problems.Solution) []problems.Solution {
 	}
 	child1 := make([]float64, s.Dimensions)
 	child2 := make([]float64, s.Dimensions)
-	for i := 0; i < s.Dimensions; i++ {
+	for i := range s.Dimensions {
 		if rand.Float64() < 0.5 {
 			child1[i] = s.X[i]
 			child2[i] = otherSol.X[i]
