@@ -45,7 +45,7 @@ func main() {
 			"SGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
-					PopulationSize:       1000,
+					PopulationSize:       100,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
 					MutationRate:         0.02,
@@ -58,7 +58,7 @@ func main() {
 			"SSGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := ssga.Params{
-					PopulationSize: 1000,
+					PopulationSize: 100,
 					MutationRate:   0.02,
 				}
 				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
@@ -70,9 +70,10 @@ func main() {
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				// Configure NSGA-II parameters.
 				params := nsga2.NSGA2Params{
-					PopulationSize: 100,
-					CrossoverProb:  0.9,
-					MutationProb:   0.1,
+					PopulationSize:  100,
+					CrossoverProb:   0.9,
+					MutationProb:    0.1,
+					GenerationLimit: 100,
 				}
 				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()

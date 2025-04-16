@@ -42,7 +42,7 @@ func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2P
 // Run executes the NSGA-II process until timeout.
 func (alg *Algorithm) Run() {
 	alg.initPopulation()
-	for time.Since(alg.StartTimestamp) < alg.Timeout {
+	for time.Since(alg.StartTimestamp) < alg.Timeout && alg.generation < alg.params.GenerationLimit {
 		alg.generation++
 
 		// Generate offspring population by selection, crossover and mutation.
