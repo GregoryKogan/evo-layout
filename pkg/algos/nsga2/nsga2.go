@@ -27,8 +27,7 @@ type Algorithm struct {
 
 type Step struct {
 	algos.GeneticAlgorithmStep
-	Generation  int         `json:"generation"`
-	ParetoFront [][]float64 `json:"pareto_front"`
+	Generation int `json:"generation"`
 }
 
 // NewAlgorithm creates a new NSGA-II instance.
@@ -75,11 +74,12 @@ func (alg *Algorithm) Run() {
 			for _, ind := range fronts[0] {
 				pareto = append(pareto, ind.Solution.Objectives())
 			}
-			alg.Solution = fronts[0][0].Solution
 			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
-				Generation:           alg.generation,
-				ParetoFront:          pareto,
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
+					Elapsed:     time.Since(alg.StartTimestamp),
+					ParetoFront: pareto,
+				},
+				Generation: alg.generation,
 			})
 		}
 	}

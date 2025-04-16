@@ -15,8 +15,9 @@ type GeneticAlgorithm struct {
 }
 
 type GeneticAlgorithmStep struct {
-	Elapsed  time.Duration     `json:"elapsed"`
-	Solution problems.Solution `json:"solution"`
+	Elapsed     time.Duration     `json:"elapsed"`
+	Solution    problems.Solution `json:"solution"`
+	ParetoFront [][]float64       `json:"pareto_front"`
 }
 
 func NewGeneticAlgorithm(problem problems.Problem, timeout time.Duration, logger ProgressLoggerProvider) *GeneticAlgorithm {

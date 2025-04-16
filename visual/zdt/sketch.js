@@ -2,6 +2,8 @@ let data = [];
 let currentGen = 0;
 let loaded = false;
 
+const zoom = 0.95
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(18);
@@ -22,8 +24,8 @@ function draw() {
   
   // Draw axes
   stroke(255);
-  line(50, height - 50, width - 50, height - 50); // x-axis
-  line(50, height - 50, 50, 50); // y-axis
+  line(30, height - 30, width * zoom, height - 30); // x-axis
+  line(30, height - 30, 30, height * (1 - zoom)); // y-axis
   
   
   // Draw the correct (true) Pareto front in red.
@@ -35,22 +37,14 @@ function draw() {
     noStroke();
     fill(255);
     textSize(16);
-    if (entry.generation) text("Generation: " + entry.generation, 20, 30);
-    if (entry.iteration) text("Iteration: " + entry.iteration, 20, 30);
-    text("f1", width - 40, height - 30);
-    text("f2", 20, 60);
+    if (entry.generation) text("Generation: " + entry.generation, 20, 20);
+    if (entry.iteration) text("Iteration: " + entry.iteration, 20, 20);
+    text("f1", width * zoom - 10, height - 10);
+    text("f2", 10, height * (1 - zoom) + 10);
 
     // Plot each point from the current Pareto front using a blue color.
-    let points = []
-    if (entry.pareto_front) points = points.concat(entry.pareto_front);
-    if (entry.solution) points.push(entry.solution.objectives);
-    for (let point of points) {
-      let x = map(point[0], 0, 1, 50, width - 50);
-      let y = map(point[1], 0, 1, height - 50, 50); // invert y-axis
-      fill(0, 200, 255);
-      noStroke();
-      ellipse(x, y, 10, 10);
-    }
+    for (let point of entry.pareto_front) drawPoint(point);
+    if (entry.solution) drawPoint(entry.solution.objectives, best=true);
     
     // Advance to next generation on each frame, stopping at the end.
     if (currentGen + 1 < data.length) {
@@ -59,7 +53,7 @@ function draw() {
   }
 }
 
-// Draw the true Pareto front for ZDT1 in red.
+// Draw the true Pareto front for ZDT1 in green
 function drawTrueParetoFront() {
   stroke(0, 255, 0);
   strokeWeight(2);
@@ -68,9 +62,21 @@ function drawTrueParetoFront() {
   // Draw points along the curve f2 = 1 - sqrt(f1)
   for (let x = 0; x <= 1; x += 0.01) {
     let y = 1 - sqrt(x);
-    let screenX = map(x, 0, 1, 50, width - 50);
-    let screenY = map(y, 0, 1, height - 50, 50); // invert y-axis
+    let screenX = map(x, 0, 1, 30,  width * zoom);
+    let screenY = map(y, 0, 1, height - 30, height * (1 - zoom)); // invert y-axis
     vertex(screenX, screenY);
   }
   endShape();
+}
+
+function drawPoint(point, best=false) {
+    let x = map(point[0], 0, 1, 30, width * zoom );
+    let y = map(point[1], 0, 1, height - 30, height * (1 - zoom)); // invert y-axis
+    noStroke();
+    fill(0, 200, 255);
+    circle(x, y, 10);
+    if (best) {
+        fill(255, 0, 0);
+        circle(x, y, 12);
+    }
 }
