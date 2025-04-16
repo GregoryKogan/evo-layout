@@ -6,7 +6,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   background(18);
   // Load the JSONL log file (each line is a JSON object)
-  loadStrings('ZDT1_NSGA2.jsonl', function(lines) {
+  loadStrings('ZDT1_SSGA.jsonl', function(lines) {
     // Parse each line as JSON, remove the first log entry if needed.
     data = lines.filter(l => l.trim().length > 0).map(l => JSON.parse(l));
     data.shift();
@@ -35,14 +35,18 @@ function draw() {
     noStroke();
     fill(255);
     textSize(16);
-    text("Generation: " + entry.generation, 20, 30);
+    if (entry.generation) text("Generation: " + entry.generation, 20, 30);
+    if (entry.iteration) text("Iteration: " + entry.iteration, 20, 30);
     text("f1", width - 40, height - 30);
     text("f2", 20, 60);
 
     // Plot each point from the current Pareto front using a blue color.
-    for (let point of entry.pareto_front) {
-      let x = map(point.f1, 0, 1, 50, width - 50);
-      let y = map(point.f2, 0, 1, height - 50, 50); // invert y-axis
+    let points = []
+    if (entry.pareto_front) points = points.concat(entry.pareto_front);
+    if (entry.solution) points.push(entry.solution.objectives);
+    for (let point of points) {
+      let x = map(point[0], 0, 1, 50, width - 50);
+      let y = map(point[1], 0, 1, height - 50, 50); // invert y-axis
       fill(0, 200, 255);
       noStroke();
       ellipse(x, y, 10, 10);

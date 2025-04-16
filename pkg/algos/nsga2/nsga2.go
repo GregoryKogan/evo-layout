@@ -18,16 +18,22 @@ type Individual struct {
 }
 
 // NSGA2Algorithm implements the NSGA-II multiobjective evolutionary algorithm.
-type NSGA2Algorithm struct {
+type Algorithm struct {
 	algos.GeneticAlgorithm // embedded common fields (start time, timeout, logger, problem, etc.)
 	params                 NSGA2Params
 	generation             int
 	population             []Individual
 }
 
+type Step struct {
+	algos.GeneticAlgorithmStep
+	Generation  int         `json:"generation"`
+	ParetoFront [][]float64 `json:"pareto_front"`
+}
+
 // NewAlgorithm creates a new NSGA-II instance.
-func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2Params, logger algos.ProgressLoggerProvider) *NSGA2Algorithm {
-	return &NSGA2Algorithm{
+func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2Params, logger algos.ProgressLoggerProvider) *Algorithm {
+	return &Algorithm{
 		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
 		params:           params,
 		generation:       0,
@@ -35,7 +41,7 @@ func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2P
 }
 
 // Run executes the NSGA-II process until timeout.
-func (alg *NSGA2Algorithm) Run() {
+func (alg *Algorithm) Run() {
 	alg.initPopulation()
 	for time.Since(alg.StartTimestamp) < alg.Timeout {
 		alg.generation++
@@ -65,27 +71,22 @@ func (alg *NSGA2Algorithm) Run() {
 
 		// Log current generation data: record generation number and the Pareto front (list of f1, f2 pairs)
 		if len(fronts) > 0 {
-			var pareto []map[string]float64
+			var pareto [][]float64
 			for _, ind := range fronts[0] {
-				objs := ind.Solution.Objectives()
-				pareto = append(pareto, map[string]float64{
-					"f1": objs[0],
-					"f2": objs[1],
-				})
+				pareto = append(pareto, ind.Solution.Objectives())
 			}
-			alg.LogStep(struct {
-				Generation  int                  `json:"generation"`
-				ParetoFront []map[string]float64 `json:"pareto_front"`
-			}{
-				Generation:  alg.generation,
-				ParetoFront: pareto,
+			alg.Solution = fronts[0][0].Solution
+			alg.LogStep(Step{
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
+				Generation:           alg.generation,
+				ParetoFront:          pareto,
 			})
 		}
 	}
 }
 
 // initPopulation creates the initial population randomly.
-func (alg *NSGA2Algorithm) initPopulation() {
+func (alg *Algorithm) initPopulation() {
 	alg.population = make([]Individual, alg.params.PopulationSize)
 	for i := range alg.params.PopulationSize {
 		alg.population[i] = Individual{Solution: alg.Problem.RandomSolution()}
@@ -93,7 +94,7 @@ func (alg *NSGA2Algorithm) initPopulation() {
 }
 
 // makeOffspring performs selection, crossover and mutation to create offspring population.
-func (alg *NSGA2Algorithm) makeOffspring() []Individual {
+func (alg *Algorithm) makeOffspring() []Individual {
 	offspring := make([]Individual, 0, alg.params.PopulationSize)
 	// Create offspring equal to population size.
 	for len(offspring) < alg.params.PopulationSize {
