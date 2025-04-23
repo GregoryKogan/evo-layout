@@ -1,14 +1,17 @@
 let data = [];
 let currentGen = 0;
+let generationIncrement = 1;
 let loaded = false;
 
 // Define a zoom factor for screen margins.
 const zoom = 0.95;
 
 // Set the ZDT problem type to visualize ("ZDT1", "ZDT2", "ZDT3", "ZDT4", or "ZDT6").
-const zdtType = "ZDT1";
+const zdtType = "ZDT6";
 const algorithm = "NSGA2";
-const gifLenSeconds = 20;
+const gifLenSeconds = 10;
+const maxFrameRate = 30;
+const generateGif = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -19,9 +22,10 @@ function setup() {
     data = lines.filter(l => l.trim().length > 0).map(l => JSON.parse(l));
     data.shift();
     loaded = true;
-    frameRate(Math.ceil(data.length / gifLenSeconds));
-    // Uncomment to save a GIF when running in an environment that supports it:
-    // saveGif(zdtType + '-' + algorithm + '.gif', gifLenSeconds);
+    fr = min(ceil(data.length / gifLenSeconds), maxFrameRate)
+    frameRate(fr);
+    generationIncrement = ceil(data.length / (fr * gifLenSeconds))
+    if (generateGif) saveGif(zdtType + '-' + algorithm + '.gif', gifLenSeconds);
   });
 }
 
@@ -32,7 +36,7 @@ function draw() {
   // Draw axes
   stroke(255);
   line(30, height - 30, width * zoom, height - 30); // x-axis
-  line(30, height - 30, 30, height * (1 - zoom));     // y-axis
+  line(30, height - 30, 30, height * (1 - zoom));   // y-axis
   
   // Draw the true Pareto front using the selected ZDT type.
   drawTrueParetoFront();
@@ -52,18 +56,14 @@ function draw() {
     text("f2", 10, height * (1 - zoom) + 10);
 
     // Plot each point from the current Pareto front as blue circles.
-    for (let point of entry.pareto_front) {
-      drawPoint(point);
-    }
+    for (let point of entry.pareto_front) drawPoint(point);
+    
     // If a best solution is logged separately, draw it with a red outline.
-    if (entry.solution) {
-      drawPoint(entry.solution.objectives, true);
-    }
+    if (entry.solution) drawPoint(entry.solution.objectives, true);
     
     // Advance to next generation on each frame, if available.
-    if (currentGen + 1 < data.length) {
-      currentGen++;
-    }
+    if (currentGen + generationIncrement < data.length) currentGen += generationIncrement;
+    else currentGen = data.length - 1;
   }
 }
 
