@@ -8,7 +8,7 @@ let generation = 0;
 function setup() {
   createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
   textSize(32);
-  fetch("graphplane.jsonl").then((response) => {
+  fetch("GraphPlane_SGA.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
         "[" +
@@ -29,18 +29,7 @@ function setup() {
 
 function draw() {
   if (!loaded || done) return;
-  const oldSolution = JSON.stringify([
-    solutions[generation].solution.intersections,
-    solutions[generation].solution.dispersion,
-  ]);
-  while (
-    generation < solutions.length &&
-    JSON.stringify([
-      solutions[generation].solution.intersections,
-      solutions[generation].solution.dispersion,
-    ]) === oldSolution
-  )
-    generation++;
+  generation++;
   if (generation >= solutions.length) {
     done = true;
     console.log("Animation frames", frameCount);
@@ -48,14 +37,6 @@ function draw() {
   }
 
   background(18);
-
-  document.querySelector(
-    "#intersections"
-  ).innerHTML = `Intersections: ${solutions[generation].solution.intersections}`;
-  document.querySelector("#dispersion").innerHTML = `Dispersion: ${
-    solutions[generation].solution.dispersion *
-    (solutions[generation].solution.intersections + 1)
-  }`;
 
   for (let vertex of solutions[generation].solution.vertices) {
     fill(255);
