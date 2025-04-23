@@ -70,17 +70,25 @@ func (alg *Algorithm) Run() {
 
 		// Log current generation data: record generation number and the Pareto front (list of f1, f2 pairs)
 		if len(fronts) > 0 {
+			improved := false
 			var pareto [][]float64
 			for _, ind := range fronts[0] {
 				pareto = append(pareto, ind.Solution.Objectives())
+				if lexLess(ind.Solution.Objectives(), alg.Solution.Objectives()) {
+					alg.Solution = ind.Solution
+					improved = true
+				}
 			}
-			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
-					Elapsed:     time.Since(alg.StartTimestamp),
-					ParetoFront: pareto,
-				},
-				Generation: alg.generation,
-			})
+			if improved {
+				alg.LogStep(Step{
+					GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
+						Elapsed:     time.Since(alg.StartTimestamp),
+						ParetoFront: pareto,
+						Solution:    alg.Solution,
+					},
+					Generation: alg.generation,
+				})
+			}
 		}
 	}
 }
@@ -228,4 +236,16 @@ func dominates(a, b problems.Solution) bool {
 		}
 	}
 	return less
+}
+
+// lexLess returns true if a is lexicographically smaller than b.
+func lexLess(a, b []float64) bool {
+	for i := 0; i < len(a) && i < len(b); i++ {
+		if a[i] < b[i] {
+			return true
+		} else if a[i] > b[i] {
+			return false
+		}
+	}
+	return false
 }

@@ -33,8 +33,7 @@ type Algorithm struct {
 // Step is emitted each generation for logging Pareto front.
 type Step struct {
 	algos.GeneticAlgorithmStep
-	Generation  int         `json:"generation"`
-	ParetoFront [][]float64 `json:"pareto_front"`
+	Generation int `json:"generation"`
 }
 
 // NewAlgorithm constructs a SPEA2Algorithm.
@@ -124,16 +123,26 @@ func (alg *Algorithm) updateArchive(combined []Individual) {
 // logParetoFront logs the current archive’s Pareto front.
 func (alg *Algorithm) logParetoFront() {
 	var pareto [][]float64
+	improved := false
 	for _, ind := range alg.archive {
 		if ind.rawFit < 1 {
 			pareto = append(pareto, ind.sol.Objectives())
+			if lexLess(ind.sol.Objectives(), alg.Solution.Objectives()) {
+				alg.Solution = ind.sol
+				improved = true
+			}
 		}
 	}
-	alg.LogStep(Step{
-		GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp)},
-		Generation:           alg.generation,
-		ParetoFront:          pareto,
-	})
+	if improved {
+		alg.LogStep(Step{
+			GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
+				Elapsed:     time.Since(alg.StartTimestamp),
+				ParetoFront: pareto,
+				Solution:    alg.Solution,
+			},
+			Generation: alg.generation,
+		})
+	}
 }
 
 // reproduce creates the next population via binary tournament, crossover, and mutation.
@@ -263,4 +272,16 @@ func euclidean(a, b []float64) float64 {
 		sum += d * d
 	}
 	return math.Sqrt(sum)
+}
+
+// lexLess returns true if a is lexicographically smaller than b.
+func lexLess(a, b []float64) bool {
+	for i := 0; i < len(a) && i < len(b); i++ {
+		if a[i] < b[i] {
+			return true
+		} else if a[i] > b[i] {
+			return false
+		}
+	}
+	return false
 }
