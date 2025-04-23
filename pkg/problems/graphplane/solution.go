@@ -7,206 +7,196 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
-type GraphPlaneSolution struct {
-	graph            *Graph
-	width, height    float64
-	CachedObjectives []float64   `json:"objectives"`
-	VertPositions    []VertexPos `json:"vertices"`
-}
-
+// VertexPos is the (x,y) coordinate of a vertex.
 type VertexPos struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 }
 
-func newSolutionBase(old *GraphPlaneSolution) *GraphPlaneSolution {
-	return &GraphPlaneSolution{
-		graph:         old.graph,
-		width:         old.width,
-		height:        old.height,
-		VertPositions: make([]VertexPos, old.graph.NumVertices),
-	}
+// GraphPlaneSolution represents a placement of graph vertices in the plane.
+type GraphPlaneSolution struct {
+	graph            *Graph
+	width, height    float64
+	VertPositions    []VertexPos `json:"vertices"`
+	CachedObjectives []float64   `json:"objectives"`
 }
 
+// RandomGraphPlaneSolution initializes vertices randomly in [0,width]×[0,height].
 func RandomGraphPlaneSolution(g *Graph, width, height float64) problems.Solution {
-	s := newSolutionBase(&GraphPlaneSolution{graph: g, width: width, height: height})
+	s := &GraphPlaneSolution{graph: g, width: width, height: height}
+	s.VertPositions = make([]VertexPos, g.NumVertices)
 	for i := range s.VertPositions {
-		s.VertPositions[i] = VertexPos{
-			X: rand.Float64() * width,
-			Y: rand.Float64() * height,
-		}
+		s.VertPositions[i] = VertexPos{X: rand.Float64() * width, Y: rand.Float64() * height}
 	}
 	return s
 }
 
+// Crossover combines two parent solutions via uniform position mixing.
 func (s *GraphPlaneSolution) Crossover(other problems.Solution) []problems.Solution {
-	otherGPS, ok := other.(*GraphPlaneSolution)
-	if !ok {
+	rhs, ok := other.(*GraphPlaneSolution)
+	if !ok || len(s.VertPositions) != len(rhs.VertPositions) {
 		return []problems.Solution{s}
 	}
-
-	child := newSolutionBase(s)
-	for i := range child.VertPositions {
+	// Create two children
+	c1 := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
+	c2 := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
+	c1.VertPositions = make([]VertexPos, len(s.VertPositions))
+	c2.VertPositions = make([]VertexPos, len(s.VertPositions))
+	for i := range s.VertPositions {
 		if rand.Float64() < 0.5 {
-			child.VertPositions[i] = s.VertPositions[i]
+			c1.VertPositions[i] = s.VertPositions[i]
+			c2.VertPositions[i] = rhs.VertPositions[i]
 		} else {
-			child.VertPositions[i] = otherGPS.VertPositions[i]
+			c1.VertPositions[i] = rhs.VertPositions[i]
+			c2.VertPositions[i] = s.VertPositions[i]
 		}
 	}
-	return []problems.Solution{child}
+	return []problems.Solution{c1, c2}
 }
 
+// Mutate perturbs vertices, focusing on those with many crossings.
 func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
-	mutant := newSolutionBase(s)
-	copy(mutant.VertPositions, s.VertPositions)
-
-	intersectionWeights := s.calculateIntersectionWeights()
-	selectedVertex := weightedRandomSelect(intersectionWeights)
-	// TODO: only one vertex is modified. Should be able to change multiple depending on mutation rate
-	deltaX, deltaY := calculateMutationDeltas(rate, s.width, s.height)
-	mutant.applyMutation(selectedVertex, deltaX, deltaY)
-
-	return mutant
+	m := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
+	m.VertPositions = make([]VertexPos, len(s.VertPositions))
+	copy(m.VertPositions, s.VertPositions)
+	// Intersection-based weights
+	weights := s.intersectionWeights()
+	for i := range m.VertPositions {
+		// base probability plus weighted factor
+		p := rate * (weights[i]/(weights[i]+1) + 0.1)
+		if rand.Float64() < p {
+			dx := rand.NormFloat64() * s.width * rate
+			dy := rand.NormFloat64() * s.height * rate
+			m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.width)
+			m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.height)
+		}
+	}
+	return m
 }
 
+// Objectives returns:
+//
+//	[0] intersections (min),
+//	[1] normalized avg edge length (min),
+//	[2] dispersion penalty (min).
 func (s *GraphPlaneSolution) Objectives() []float64 {
 	if len(s.CachedObjectives) > 0 {
 		return s.CachedObjectives
 	}
-	intersections := float64(s.countIntersections())
-	dispersion := s.calculateDispersionPenalty()
-	s.CachedObjectives = []float64{intersections, 1.0 / (dispersion + 1)}
+	// 1) edge crossings
+	inter := float64(s.countIntersections())
+	// 2) average edge length relative to diagonal
+	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
+	// 3) dispersion penalty
+	disp := s.dispersionPenalty()
+	s.CachedObjectives = []float64{inter, avgLen, disp}
 	return s.CachedObjectives
 }
 
+// Fitness for single-objective algorithms (fallback).
 func (s *GraphPlaneSolution) Fitness() float64 {
-	objectives := s.Objectives()
-	return objectives[0] + (objectives[0]+1.0)*objectives[1]
+	o := s.Objectives()
+	return o[0] + o[1] + o[2]
 }
 
-func (s *GraphPlaneSolution) calculateIntersectionWeights() []float64 {
-	weights := make([]float64, s.graph.NumVertices)
-	s.forEachEdgePair(func(e1, e2 Edge, a, b, c, d VertexPos) {
-		if segmentsIntersect(a, b, c, d) {
-			weights[e1.From] += 1.0
-			weights[e1.To] += 1.0
-			weights[e2.From] += 1.0
-			weights[e2.To] += 1.0
+// avgEdgeLength computes mean length of all edges.
+func (s *GraphPlaneSolution) avgEdgeLength() float64 {
+	tot := 0.0
+	for _, e := range s.graph.Edges {
+		p, q := s.VertPositions[e.From], s.VertPositions[e.To]
+		tot += math.Hypot(p.X-q.X, p.Y-q.Y)
+	}
+	n := float64(len(s.graph.Edges))
+	if n == 0 {
+		return 0
+	}
+	return tot / n
+}
+
+// dispersionPenalty penalizes too-close vertices.
+func (s *GraphPlaneSolution) dispersionPenalty() float64 {
+	n := float64(len(s.VertPositions))
+	desired := math.Min(s.width, s.height) / math.Sqrt(n)
+	minD := math.MaxFloat64
+	for i := range s.VertPositions {
+		for j := i + 1; j < len(s.VertPositions); j++ {
+			d := math.Hypot(
+				s.VertPositions[i].X-s.VertPositions[j].X,
+				s.VertPositions[i].Y-s.VertPositions[j].Y)
+			if d < minD {
+				minD = d
+			}
 		}
-	})
-	return weights
+	}
+	if minD >= desired {
+		return 0
+	}
+	return (desired - minD) / desired
 }
 
-func calculateMutationDeltas(rate, width, height float64) (float64, float64) {
-	return rand.NormFloat64() * width * rate,
-		rand.NormFloat64() * height * rate
-}
-
-func (s *GraphPlaneSolution) applyMutation(vertex int, deltaX, deltaY float64) {
-	s.VertPositions[vertex].X = clamp(s.VertPositions[vertex].X+deltaX, 0, s.width)
-	s.VertPositions[vertex].Y = clamp(s.VertPositions[vertex].Y+deltaY, 0, s.height)
-}
-
-// Common edge pair iteration logic
-func (s *GraphPlaneSolution) forEachEdgePair(fn func(e1, e2 Edge, a, b, c, d VertexPos)) {
-	edges := s.graph.Edges
-	for i := 0; i < len(edges); i++ {
-		e1 := edges[i]
-		a := s.VertPositions[e1.From]
-		b := s.VertPositions[e1.To]
-		for j := i + 1; j < len(edges); j++ {
-			e2 := edges[j]
+// countIntersections counts all pairwise edge crossings.
+func (s *GraphPlaneSolution) countIntersections() int {
+	cnt := 0
+	for i := range s.graph.Edges {
+		e1 := s.graph.Edges[i]
+		p1, p2 := s.VertPositions[e1.From], s.VertPositions[e1.To]
+		for j := i + 1; j < len(s.graph.Edges); j++ {
+			e2 := s.graph.Edges[j]
 			if sharesVertex(e1, e2) {
 				continue
 			}
-			c := s.VertPositions[e2.From]
-			d := s.VertPositions[e2.To]
-			fn(e1, e2, a, b, c, d)
+			p3, p4 := s.VertPositions[e2.From], s.VertPositions[e2.To]
+			if segmentsIntersect(p1, p2, p3, p4) {
+				cnt++
+			}
 		}
 	}
+	return cnt
 }
 
-func (s *GraphPlaneSolution) countIntersections() int {
-	count := 0
-	s.forEachEdgePair(func(e1, e2 Edge, a, b, c, d VertexPos) {
-		if segmentsIntersect(a, b, c, d) {
-			count++
-		}
-	})
-	return count
-}
-
-func weightedRandomSelect(weights []float64) int {
-	// Calculate total weight
-	total := 0.0
-	for _, w := range weights {
-		total += w
-	}
-
-	// If no intersections, select uniformly
-	if total == 0 {
-		return rand.Intn(len(weights))
-	}
-
-	// Generate random position
-	r := rand.Float64() * total
-	for i, w := range weights {
-		r -= w
-		if r < 0 {
-			return i
+// intersectionWeights returns per-vertex count of incident crossings.
+func (s *GraphPlaneSolution) intersectionWeights() []float64 {
+	w := make([]float64, len(s.VertPositions))
+	for i := range s.graph.Edges {
+		e1 := s.graph.Edges[i]
+		p1, p2 := s.VertPositions[e1.From], s.VertPositions[e1.To]
+		for j := i + 1; j < len(s.graph.Edges); j++ {
+			e2 := s.graph.Edges[j]
+			if sharesVertex(e1, e2) {
+				continue
+			}
+			p3, p4 := s.VertPositions[e2.From], s.VertPositions[e2.To]
+			if segmentsIntersect(p1, p2, p3, p4) {
+				w[e1.From]++
+				w[e1.To]++
+				w[e2.From]++
+				w[e2.To]++
+			}
 		}
 	}
-
-	// Fallback to random selection
-	return rand.Intn(len(weights))
+	return w
 }
 
-func clamp(value, min, max float64) float64 {
-	if value < min {
-		return min
-	}
-	if value > max {
-		return max
-	}
-	return value
-}
-
+// sharesVertex checks if two edges share an endpoint.
 func sharesVertex(e1, e2 Edge) bool {
 	return e1.From == e2.From || e1.From == e2.To || e1.To == e2.From || e1.To == e2.To
 }
 
+// segmentsIntersect tests segment intersection via CCW.
 func segmentsIntersect(a, b, c, d VertexPos) bool {
-	ccw := func(ax, ay, bx, by, cx, cy float64) bool {
-		return (cy-ay)*(bx-ax) > (by-ay)*(cx-ax)
+	ccw := func(u, v, w VertexPos) bool {
+		return (w.Y-u.Y)*(v.X-u.X) > (v.Y-u.Y)*(w.X-u.X)
 	}
-	return ccw(a.X, a.Y, c.X, c.Y, d.X, d.Y) != ccw(b.X, b.Y, c.X, c.Y, d.X, d.Y) &&
-		ccw(a.X, a.Y, b.X, b.Y, c.X, c.Y) != ccw(a.X, a.Y, b.X, b.Y, d.X, d.Y)
+	return ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d)
 }
 
-func (s *GraphPlaneSolution) calculateDispersionPenalty() float64 {
-	desiredMin := math.Min(s.width, s.height) / math.Sqrt(float64(s.graph.NumVertices))
-	minDist := s.computeMinVertexDistance()
-	if minDist <= 0.001 {
-		return math.MaxFloat64
+// clamp bounds v to [min,max].
+func clamp(v, min, max float64) float64 {
+	if v < min {
+		return min
 	}
-	if minDist < desiredMin {
-		return (desiredMin - minDist) / desiredMin
+	if v > max {
+		return max
 	}
-	return 0.0
-}
-
-func (s *GraphPlaneSolution) computeMinVertexDistance() float64 {
-	minDist := math.MaxFloat64
-	positions := s.VertPositions
-	for i := 0; i < len(positions); i++ {
-		for j := i + 1; j < len(positions); j++ {
-			dx := positions[i].X - positions[j].X
-			dy := positions[i].Y - positions[j].Y
-			dist := math.Hypot(dx, dy)
-			if dist < minDist {
-				minDist = dist
-			}
-		}
-	}
-	return minDist
+	return v
 }
