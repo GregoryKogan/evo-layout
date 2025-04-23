@@ -9,6 +9,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/spea2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/zdt"
@@ -76,6 +77,21 @@ func main() {
 					GenerationLimit: 100,
 				}
 				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg.Run()
+			},
+		},
+		{
+			"SPEA2",
+			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+				params := spea2.Params{
+					PopulationSize:  100,
+					ArchiveSize:     100,
+					CrossoverProb:   0.9,
+					MutationProb:    0.1,
+					DensityKth:      14, // typical choice: sqrt(population+archive)
+					GenerationLimit: 100,
+				}
+				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
