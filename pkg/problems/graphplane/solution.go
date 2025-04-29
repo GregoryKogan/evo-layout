@@ -77,26 +77,29 @@ func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
 // Objectives returns:
 //
 //	[0] intersections (min),
-//	[1] normalized avg edge length (min),
-//	[2] dispersion penalty (min).
+//	[1] smallest-angle penalty (min),
+//	[2] normalized avg edge length (min),
+//	[3] dispersion penalty (min).
 func (s *GraphPlaneSolution) Objectives() []float64 {
 	if len(s.CachedObjectives) > 0 {
 		return s.CachedObjectives
 	}
-	// 1) edge crossings
 	inter := float64(s.countIntersections())
-	// 2) average edge length relative to diagonal
+	anglePen := s.smallestAnglePenalty()
 	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
-	// 3) dispersion penalty
 	disp := s.dispersionPenalty()
-	s.CachedObjectives = []float64{inter, avgLen, disp}
+	s.CachedObjectives = []float64{inter, anglePen, avgLen, disp}
 	return s.CachedObjectives
 }
 
 // Fitness for single-objective algorithms (fallback).
 func (s *GraphPlaneSolution) Fitness() float64 {
 	o := s.Objectives()
-	return o[0] + o[1] + o[2]
+	sum := 0.0
+	for _, v := range o {
+		sum += v
+	}
+	return sum
 }
 
 // avgEdgeLength computes mean length of all edges.
@@ -111,6 +114,44 @@ func (s *GraphPlaneSolution) avgEdgeLength() float64 {
 		return 0
 	}
 	return tot / n
+}
+
+// smallestAnglePenalty computes penalty = (π - minAngle)/π, based on
+// the smallest angle between any two edges sharing a vertex.
+func (s *GraphPlaneSolution) smallestAnglePenalty() float64 {
+	minAngle := math.Pi
+	for v := range s.VertPositions {
+		// collect incident neighbors
+		var neigh []VertexPos
+		for _, e := range s.graph.Edges {
+			if e.From == v {
+				neigh = append(neigh, s.VertPositions[e.To])
+			} else if e.To == v {
+				neigh = append(neigh, s.VertPositions[e.From])
+			}
+		}
+		// compute angles between each pair
+		for i := range neigh {
+			for j := i + 1; j < len(neigh); j++ {
+				u := VertexPos{X: neigh[i].X - s.VertPositions[v].X, Y: neigh[i].Y - s.VertPositions[v].Y}
+				w := VertexPos{X: neigh[j].X - s.VertPositions[v].X, Y: neigh[j].Y - s.VertPositions[v].Y}
+				dot := u.X*w.X + u.Y*w.Y
+				du := math.Hypot(u.X, u.Y)
+				dv := math.Hypot(w.X, w.Y)
+				if du == 0 || dv == 0 {
+					continue
+				}
+				ing := math.Acos(math.Min(1, math.Max(-1, dot/(du*dv))))
+				if ing < minAngle {
+					minAngle = ing
+				}
+			}
+		}
+	}
+	if minAngle == math.Pi {
+		return 0
+	}
+	return (math.Pi - minAngle) / math.Pi
 }
 
 // dispersionPenalty penalizes too-close vertices.
