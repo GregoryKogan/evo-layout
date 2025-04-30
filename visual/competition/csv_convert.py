@@ -1,7 +1,7 @@
 import json
 import os
 
-PROBLEM = "TSP"
+PROBLEM = "GraphPlane"
 ALGO = "SSGA"
 
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -16,7 +16,8 @@ with open(logfile) as f:
 for line in lines:
     data = json.loads(line)
     csv_lines.append(
-        f'{int(data["elapsed"]) / 1e9};{data["solution"]["objectives"][0]}\n'
+        f'{int(data["elapsed"]) / 1e9};{data["solution"]["intersections"]}\n'
+        # f'{int(data["elapsed"]) / 1e9};{data["solution"]["objectives"][0]}\n'
         # f'{int(data["elapsed"]) / 1e9};{data["solution"]["fitness"]}\n'
     )
 

@@ -1,6 +1,7 @@
 package graphplane
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -26,6 +27,7 @@ type Step struct {
 func NewForceDirectedLayer(sol problems.Solution, iterations int, initialTemp float64, logger algos.ProgressLoggerProvider) ForceDirectedLayer {
 	gpSol, ok := sol.(*GraphPlaneSolution)
 	if !ok {
+		fmt.Printf("%#+v\n", sol)
 		panic("type error")
 	}
 	return ForceDirectedLayer{
@@ -37,8 +39,12 @@ func NewForceDirectedLayer(sol problems.Solution, iterations int, initialTemp fl
 	}
 }
 
-// AlgorithmicSolution runs the spring-electrical simulation and returns a solution.
-func (p *ForceDirectedLayer) AlgorithmicSolution() problems.AlgorithmicSolution {
+// Solve runs the spring-electrical simulation and returns a solution.
+func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
+	bestSolution := &GraphPlaneSolution{graph: p.graph, width: p.width, height: p.height, VertPositions: make([]VertexPos, len(p.VertPositions))}
+	copy(bestSolution.VertPositions, p.VertPositions)
+	bestSolution.Objectives()
+
 	start := time.Now()
 	n := p.graph.NumVertices
 
@@ -109,8 +115,14 @@ func (p *ForceDirectedLayer) AlgorithmicSolution() problems.AlgorithmicSolution 
 
 		p.CachedObjectives = nil
 		p.Objectives()
+		if p.Intersections < bestSolution.Intersections {
+			copy(bestSolution.VertPositions, p.VertPositions)
+			bestSolution.CachedObjectives = nil
+			bestSolution.Objectives()
+		}
 		p.logger.LogStep(Step{algos.GeneticAlgorithmStep{Elapsed: time.Since(start), Solution: p.GraphPlaneSolution}, iter})
 	}
 
-	return problems.AlgorithmicSolution{Solution: p.GraphPlaneSolution, TimeTook: time.Since(start)}
+	p.logger.LogStep(Step{algos.GeneticAlgorithmStep{Elapsed: time.Since(start), Solution: bestSolution}, p.Iterations})
+	return problems.AlgorithmicSolution{Solution: bestSolution, TimeTook: time.Since(start)}
 }

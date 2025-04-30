@@ -27,24 +27,30 @@ function setup() {
     });
   });
   frameRate(25);
-  // saveGif("gp-25-35-SSGA-force.gif", 10);
+  // saveGif("gp-25-35-NSGA2+Force.gif", 10);
 }
 
 function draw() {
   if (!loaded || done) return;
-  generation++;
+  generation += frameCount % 5 == 1;
+  if (solutions[generation].generation == null) {
+    frameRate(25);
+    generation += 7;
+    if (solutions[generation].solution.intersections == solutions[generation - 8].solution.intersections) generation += 64;
+  }
   if (generation >= solutions.length) {
     done = true;
+    generation = solutions.length - 1;
     console.log("Animation frames", frameCount);
-    return;
   }
 
 
   background(18);
 
   noStroke();
-  text("Algorithm: SSGA", 30, 50);
-  text("intersections: " + solutions[generation].solution.objectives[0], 30, 30);
+  if (solutions[generation].generation != null) text("Algorithm: NSGA2", 30, 50);
+  else text("Algorithm: Fruchterman–Reingold", 30, 50);
+  text("Intersections: " + solutions[generation].solution.intersections, 30, 30);
 
   for (let edge of problem.graph.edges) {
     let v1 = solutions[generation].solution.vertices[edge.from];

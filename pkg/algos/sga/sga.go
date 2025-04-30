@@ -42,12 +42,8 @@ func (alg *Algorithm) Run() {
 		bestFitness := alg.Solution.Fitness()
 		if fitness != bestFitness {
 			fitness = bestFitness
-			var pareto [][]float64
-			for _, solution := range alg.population {
-				pareto = append(pareto, solution.Objectives())
-			}
 			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, ParetoFront: pareto},
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
 				Generation:           alg.generations,
 			})
 		}

@@ -17,6 +17,7 @@ type VertexPos struct {
 type GraphPlaneSolution struct {
 	graph            *Graph
 	width, height    float64
+	Intersections    int         `json:"intersections"`
 	VertPositions    []VertexPos `json:"vertices"`
 	CachedObjectives []float64   `json:"objectives"`
 }
@@ -84,7 +85,8 @@ func (s *GraphPlaneSolution) Objectives() []float64 {
 	if len(s.CachedObjectives) > 0 {
 		return s.CachedObjectives
 	}
-	inter := float64(s.countIntersections())
+	s.Intersections = s.countIntersections()
+	inter := float64(s.Intersections) / float64(s.graph.MaxPossibleIntersections())
 	anglePen := s.smallestAnglePenalty()
 	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
 	disp := s.dispersionPenalty()
