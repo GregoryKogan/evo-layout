@@ -15,46 +15,22 @@ import (
 
 func main() {
 	// Define timeout for every algorithm run.
-	timeLimit := 70 * time.Second
+	timeLimit := 10 * time.Minute
 
-	problem := graphplane.NewGraphPlaneProblem(25, 0.35, 1.0, 1.0)
+	problem := graphplane.NewGraphPlaneProblem(100, 0.1, 1.0, 1.0)
 	population := 1000
-	mutationProb := 0.1
+	mutationProb := 0.5
 	crossoverProb := 0.9
 
 	// Create a directory for logs.
 	os.RemoveAll("logs")
 	os.Mkdir("logs", 0755)
 
-	logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", problem.Name(), "SGA+Force"))
+	logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", problem.Name(), "NSGA2"))
 	logger := algos.NewProgressLogger(logPath)
 	logger.InitLogging()
 	logger.LogProblem(problem)
 
-	logPath2 := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", problem.Name(), "Force"))
-	logger2 := algos.NewProgressLogger(logPath2)
-	logger2.InitLogging()
-	logger2.LogProblem(problem)
-
-	// SGA
-	// params := sga.Params{
-	// 	PopulationSize:       population,
-	// 	ElitePercentile:      0.1,
-	// 	MatingPoolPercentile: 0.5,
-	// 	MutationProb:         mutationProb,
-	// 	CrossoverProb:        crossoverProb,
-	// }
-	// alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
-
-	// SSGA
-	// params := ssga.Params{
-	// 	PopulationSize: population,
-	// 	MutationProb:   mutationProb,
-	// 	CrossoverProb:  crossoverProb,
-	// }
-	// alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
-
-	// NSGA2
 	params := nsga2.NSGA2Params{
 		PopulationSize:  population,
 		GenerationLimit: math.MaxInt,
@@ -63,24 +39,7 @@ func main() {
 	}
 	alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 
-	// SPEA2
-	// params := spea2.Params{
-	// 	PopulationSize:  population,
-	// 	ArchiveSize:     population,
-	// 	DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
-	// 	GenerationLimit: math.MaxInt,
-	// 	MutationProb:    mutationProb,
-	// 	CrossoverProb:   crossoverProb,
-	// }
-	// alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
-
-	solution := runAlgorithm(problem.Name(), alg, timeLimit)
-
-	forceLayer := graphplane.NewForceDirectedLayer(solution, 2000, 0.002, logger)
-	forceLayer.Solve()
-
-	forceLayer2 := graphplane.NewForceDirectedLayer(problem.RandomSolution(), 2000, 0.002, logger2)
-	forceLayer2.Solve()
+	runAlgorithm(problem.Name(), alg, timeLimit)
 }
 
 // runAlgorithm wraps an algorithm run in a goroutine and enforces a timeout.

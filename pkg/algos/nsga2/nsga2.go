@@ -70,25 +70,23 @@ func (alg *Algorithm) Run() {
 
 		// Log current generation data: record generation number and the Pareto front (list of f1, f2 pairs)
 		if len(fronts) > 0 {
-			improved := false
 			var pareto [][]float64
 			for _, ind := range fronts[0] {
 				pareto = append(pareto, ind.Solution.Objectives())
 				if lexLess(ind.Solution.Objectives(), alg.Solution.Objectives()) {
 					alg.Solution = ind.Solution
-					improved = true
 				}
 			}
-			if improved {
-				alg.LogStep(Step{
-					GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
-						Elapsed:     time.Since(alg.StartTimestamp),
-						ParetoFront: pareto,
-						Solution:    alg.Solution,
-					},
-					Generation: alg.generation,
-				})
-			}
+
+			alg.LogStep(Step{
+				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
+					Elapsed:     time.Since(alg.StartTimestamp),
+					ParetoFront: pareto,
+					Solution:    alg.Solution,
+				},
+				Generation: alg.generation,
+			})
+
 		}
 	}
 }

@@ -78,19 +78,19 @@ func (s *GraphPlaneSolution) Mutate() problems.Solution {
 // Objectives returns:
 //
 //	[0] intersections (min),
-//	[1] smallest-angle penalty (min),
+//	[1] dispersion penalty (min).
 //	[2] normalized avg edge length (min),
-//	[3] dispersion penalty (min).
+//	[3] smallest-angle penalty (min),
 func (s *GraphPlaneSolution) Objectives() []float64 {
 	if len(s.CachedObjectives) > 0 {
 		return s.CachedObjectives
 	}
 	s.Intersections = s.countIntersections()
 	inter := float64(s.Intersections) / float64(s.graph.MaxPossibleIntersections())
-	anglePen := s.smallestAnglePenalty()
-	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
 	disp := s.dispersionPenalty()
-	s.CachedObjectives = []float64{inter, anglePen, avgLen, disp}
+	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
+	anglePen := s.smallestAnglePenalty()
+	s.CachedObjectives = []float64{inter, disp, avgLen, anglePen}
 	return s.CachedObjectives
 }
 

@@ -6,13 +6,13 @@ let loaded = false;
 // Define a zoom factor for screen margins.
 const zoom = 0.95;
 
-const filename = 'GraphPlane_SPEA2'
+const filename = 'GraphPlane_NSGA2'
 const gifLenSeconds = 10;
 const maxFrameRate = 30;
 const generateGif = false;
 
-const objTitles = ['intersections', 'min-angle', 'edge-length', 'dispersion']
-const xInd = 2
+const objTitles = ['intersections',  'dispersion', 'edge-length', 'min-angle']
+const xInd = 1
 const yInd = 0
 
 function setup() {
