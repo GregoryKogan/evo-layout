@@ -18,9 +18,12 @@ import (
 
 func main() {
 	// Define timeout for every algorithm run.
-	timeLimit := 5 * time.Minute
+	timeLimit := 1 * time.Minute
 
-	problem := graphplane.NewGraphPlaneProblem(25, 0.35, 1.0, 1.0)
+	problem := graphplane.NewGraphPlaneProblem(100, 0.1, 1.0, 1.0)
+	population := 1000
+	mutationProb := 0.1
+	crossoverProb := 0.9
 
 	// Define algorithm constructors.
 	algorithmsList := []struct {
@@ -31,10 +34,11 @@ func main() {
 			"SGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
-					PopulationSize:       500,
+					PopulationSize:       population,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
-					MutationRate:         0.02,
+					MutationProb:         mutationProb,
+					CrossoverProb:        crossoverProb,
 				}
 				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
@@ -44,8 +48,9 @@ func main() {
 			"SSGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := ssga.Params{
-					PopulationSize: 500,
-					MutationRate:   0.02,
+					PopulationSize: population,
+					MutationProb:   mutationProb,
+					CrossoverProb:  crossoverProb,
 				}
 				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
@@ -56,10 +61,10 @@ func main() {
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				// Configure NSGA-II parameters.
 				params := nsga2.NSGA2Params{
-					PopulationSize:  500,
-					CrossoverProb:   0.9,
-					MutationProb:    0.1,
+					PopulationSize:  population,
 					GenerationLimit: math.MaxInt,
+					MutationProb:    mutationProb,
+					CrossoverProb:   crossoverProb,
 				}
 				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
@@ -69,12 +74,12 @@ func main() {
 			"SPEA2",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := spea2.Params{
-					PopulationSize:  500,
-					ArchiveSize:     500,
-					CrossoverProb:   0.9,
-					MutationProb:    0.1,
-					DensityKth:      14, // typical choice: sqrt(population+archive)
+					PopulationSize:  population,
+					ArchiveSize:     population,
+					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
 					GenerationLimit: math.MaxInt,
+					MutationProb:    mutationProb,
+					CrossoverProb:   crossoverProb,
 				}
 				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()

@@ -2,5 +2,6 @@ package ssga
 
 type Params struct {
 	PopulationSize int
-	MutationRate   float64
+	CrossoverProb  float64
+	MutationProb   float64
 }

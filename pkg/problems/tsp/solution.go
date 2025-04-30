@@ -21,16 +21,13 @@ func RandomTSPSolution(problemParams TSProblemParameters, cities []City) problem
 	return &TSPSolution{problemParams: problemParams, cities: cities, VisitingOrder: order}
 }
 
-func (s *TSPSolution) Mutate(rate float64) problems.Solution {
+func (s *TSPSolution) Mutate() problems.Solution {
 	newOrder := make([]int, s.problemParams.CitiesNum-1)
 	copy(newOrder, s.VisitingOrder)
 
-	mutations := int(float64(s.problemParams.CitiesNum) * rate)
-	for range mutations {
-		i := rand.IntN(s.problemParams.CitiesNum - 1)
-		j := rand.IntN(s.problemParams.CitiesNum - 1)
-		newOrder[i], newOrder[j] = newOrder[j], newOrder[i]
-	}
+	i := rand.IntN(s.problemParams.CitiesNum - 1)
+	j := rand.IntN(s.problemParams.CitiesNum - 1)
+	newOrder[i], newOrder[j] = newOrder[j], newOrder[i]
 
 	return &TSPSolution{problemParams: s.problemParams, cities: s.cities, VisitingOrder: newOrder}
 }

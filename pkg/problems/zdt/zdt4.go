@@ -73,31 +73,27 @@ func (s *ZDT4Solution) Crossover(other problems.Solution) []problems.Solution {
 	}
 }
 
-func (s *ZDT4Solution) Mutate(rate float64) problems.Solution {
+func (s *ZDT4Solution) Mutate() problems.Solution {
 	mutant := make([]float64, s.Dimensions)
 	copy(mutant, s.X)
 	// Mutate first variable (in [0,1])
-	if rand.Float64() < rate {
-		delta := rand.NormFloat64() * 0.1
-		mutant[0] += delta
-		if mutant[0] < 0 {
-			mutant[0] = 0
-		}
-		if mutant[0] > 1 {
-			mutant[0] = 1
-		}
+	delta := rand.NormFloat64() * 0.1
+	mutant[0] += delta
+	if mutant[0] < 0 {
+		mutant[0] = 0
+	}
+	if mutant[0] > 1 {
+		mutant[0] = 1
 	}
 	// Mutate remaining variables (in [-5,5])
 	for i := 1; i < s.Dimensions; i++ {
-		if rand.Float64() < rate {
-			delta := rand.NormFloat64() * 0.1 * 10
-			mutant[i] += delta
-			if mutant[i] < -5 {
-				mutant[i] = -5
-			}
-			if mutant[i] > 5 {
-				mutant[i] = 5
-			}
+		delta := rand.NormFloat64() * 0.1 * 10
+		mutant[i] += delta
+		if mutant[i] < -5 {
+			mutant[i] = -5
+		}
+		if mutant[i] > 5 {
+			mutant[i] = 5
 		}
 	}
 	return &ZDT4Solution{Dimensions: s.Dimensions, X: mutant}

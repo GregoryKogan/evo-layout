@@ -19,7 +19,7 @@ type AlgorithmicProblem interface {
 
 type Solution interface {
 	Crossover(Solution) []Solution
-	Mutate(rate float64) Solution
+	Mutate() Solution
 
 	// Multi-objective genetic algorithms (like NSGA-II, SPEA2) use Objectives() method
 	// Single objective problems just return a slice with one value

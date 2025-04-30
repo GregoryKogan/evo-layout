@@ -158,7 +158,9 @@ func (alg *Algorithm) reproduce() {
 			kids = []problems.Solution{p1.sol, p2.sol}
 		}
 		for _, k := range kids {
-			k = k.Mutate(alg.params.MutationProb)
+			if rand.Float64() < alg.params.MutationProb {
+				k = k.Mutate()
+			}
 			nextP = append(nextP, Individual{sol: k})
 			if len(nextP) >= alg.params.PopulationSize {
 				break

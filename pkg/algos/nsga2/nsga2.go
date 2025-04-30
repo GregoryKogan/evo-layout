@@ -119,7 +119,9 @@ func (alg *Algorithm) makeOffspring() []Individual {
 		}
 		// Mutate each child.
 		for _, child := range children {
-			child = child.Mutate(alg.params.MutationProb)
+			if rand.Float64() < alg.params.MutationProb {
+				child = child.Mutate()
+			}
 			offspring = append(offspring, Individual{Solution: child})
 			if len(offspring) >= alg.params.PopulationSize {
 				break

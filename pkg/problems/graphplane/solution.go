@@ -55,7 +55,7 @@ func (s *GraphPlaneSolution) Crossover(other problems.Solution) []problems.Solut
 }
 
 // Mutate perturbs vertices, focusing on those with many crossings.
-func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
+func (s *GraphPlaneSolution) Mutate() problems.Solution {
 	m := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
 	m.VertPositions = make([]VertexPos, len(s.VertPositions))
 	copy(m.VertPositions, s.VertPositions)
@@ -63,10 +63,10 @@ func (s *GraphPlaneSolution) Mutate(rate float64) problems.Solution {
 	weights := s.intersectionWeights()
 	for i := range m.VertPositions {
 		// base probability plus weighted factor
-		p := rate * (weights[i]/(weights[i]+1) + 0.1)
+		p := weights[i]/(weights[i]+1) + 0.1
 		if rand.Float64() < p {
-			dx := rand.NormFloat64() * s.width * rate
-			dy := rand.NormFloat64() * s.height * rate
+			dx := rand.NormFloat64() * s.width
+			dy := rand.NormFloat64() * s.height
 			m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.width)
 			m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.height)
 		}

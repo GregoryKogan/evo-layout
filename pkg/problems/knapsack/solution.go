@@ -48,15 +48,13 @@ func (s *KnapsackSolution) Crossover(other problems.Solution) []problems.Solutio
 	}
 }
 
-func (s *KnapsackSolution) Mutate(rate float64) problems.Solution {
+func (s *KnapsackSolution) Mutate() problems.Solution {
 	mutantBits := make([]bool, s.problemParams.ItemsNum)
+	copy(mutantBits, s.Bits)
 
-	for i := range s.problemParams.ItemsNum {
-		if rand.Float64() < rate {
-			mutantBits[i] = !s.Bits[i]
-		} else {
-			mutantBits[i] = s.Bits[i]
-		}
+	for range max(s.problemParams.ItemsNum/100, 1) {
+		bitInd := rand.IntN(s.problemParams.ItemsNum)
+		mutantBits[bitInd] = !s.Bits[bitInd]
 	}
 
 	return &KnapsackSolution{problemParams: s.problemParams, items: s.items, Bits: mutantBits}

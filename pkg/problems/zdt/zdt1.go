@@ -77,21 +77,19 @@ func (s *ZDT1Solution) Crossover(other problems.Solution) []problems.Solution {
 
 // Mutate applies mutation by perturbing each decision variable with a small probability.
 // The mutated value is clamped to remain within [0, 1].
-func (s *ZDT1Solution) Mutate(rate float64) problems.Solution {
+func (s *ZDT1Solution) Mutate() problems.Solution {
 	mutantX := make([]float64, s.Dimensions)
 	copy(mutantX, s.X)
 	for i := range s.Dimensions {
-		if rand.Float64() < rate {
-			// Add a normally distributed perturbation (scale factor is arbitrary).
-			delta := rand.NormFloat64() * 0.1
-			mutantX[i] += delta
-			// Clamp to [0, 1].
-			if mutantX[i] < 0 {
-				mutantX[i] = 0
-			}
-			if mutantX[i] > 1 {
-				mutantX[i] = 1
-			}
+		// Add a normally distributed perturbation (scale factor is arbitrary).
+		delta := rand.NormFloat64() * 0.1
+		mutantX[i] += delta
+		// Clamp to [0, 1].
+		if mutantX[i] < 0 {
+			mutantX[i] = 0
+		}
+		if mutantX[i] > 1 {
+			mutantX[i] = 1
 		}
 	}
 	return &ZDT1Solution{

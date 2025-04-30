@@ -79,11 +79,23 @@ func (alg *Algorithm) Evolve() {
 		}
 		parent1 := alg.population[p1Ind]
 		parent2 := alg.population[p2Ind]
-		children := parent1.Crossover(parent2)
-		for i := range children {
-			children[i] = children[i].Mutate(alg.params.MutationRate)
+
+		var children []problems.Solution
+		if rand.Float64() < alg.params.CrossoverProb {
+			children = parent1.Crossover(parent2)
+		} else {
+			children = []problems.Solution{parent1, parent2}
 		}
-		newPopulation = append(newPopulation, children...)
+
+		for _, child := range children {
+			if rand.Float64() < alg.params.MutationProb {
+				child = child.Mutate()
+			}
+			newPopulation = append(newPopulation, child)
+			if len(newPopulation) > alg.params.PopulationSize {
+				break
+			}
+		}
 	}
 
 	alg.population = newPopulation

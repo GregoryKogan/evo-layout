@@ -75,9 +75,18 @@ func (alg *Algorithm) Evolve() {
 		}
 		parent1 := alg.population[p1Ind]
 		parent2 := alg.population[p2Ind]
-		children := parent1.Crossover(parent2)
+
+		var children []problems.Solution
+		if rand.Float64() < alg.params.CrossoverProb {
+			children = parent1.Crossover(parent2)
+		} else {
+			children = []problems.Solution{parent1, parent2}
+		}
+
 		for i := range children {
-			children[i] = children[i].Mutate(alg.params.MutationRate)
+			if rand.Float64() < alg.params.MutationProb {
+				children[i] = children[i].Mutate()
+			}
 			alg.population[alg.params.PopulationSize-i-1] = children[i]
 		}
 		replaced = true
