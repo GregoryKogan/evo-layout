@@ -7,8 +7,11 @@ let generation = 0;
 
 function setup() {
   createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
-  textSize(32);
-  fetch("GraphPlane_SGA.jsonl").then((response) => {
+  textSize(16);
+  fill(255);
+  stroke(255);
+  textAlign(LEFT);
+  fetch("GraphPlane_Force.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
         "[" +
@@ -23,8 +26,8 @@ function setup() {
       loaded = true;
     });
   });
-  frameRate(5);
-  // saveGif("planar-graph.gif", 6);
+  frameRate(25);
+  // saveGif("gp-25-35-SSGA-force.gif", 10);
 }
 
 function draw() {
@@ -36,13 +39,12 @@ function draw() {
     return;
   }
 
+
   background(18);
 
-  for (let vertex of solutions[generation].solution.vertices) {
-    fill(255);
-    const v = toScreenCoord(vertex.x, vertex.y);
-    circle(v.x, v.y, 10);
-  }
+  noStroke();
+  text("Algorithm: SSGA", 30, 50);
+  text("intersections: " + solutions[generation].solution.objectives[0], 30, 30);
 
   for (let edge of problem.graph.edges) {
     let v1 = solutions[generation].solution.vertices[edge.from];
@@ -55,6 +57,12 @@ function draw() {
       toScreenCoord(v2.x, v2.y).x,
       toScreenCoord(v2.x, v2.y).y
     );
+  }
+
+  for (let vertex of solutions[generation].solution.vertices) {
+    fill(255);
+    const v = toScreenCoord(vertex.x, vertex.y);
+    circle(v.x, v.y, 10);
   }
 }
 
