@@ -79,8 +79,7 @@ func (s *GraphPlaneSolution) Mutate() problems.Solution {
 //
 //	[0] intersections (min),
 //	[1] dispersion penalty (min).
-//	[2] normalized avg edge length (min),
-//	[3] smallest-angle penalty (min),
+//	[2] avg-angle penalty (min),
 func (s *GraphPlaneSolution) Objectives() []float64 {
 	if len(s.CachedObjectives) > 0 {
 		return s.CachedObjectives
@@ -88,9 +87,8 @@ func (s *GraphPlaneSolution) Objectives() []float64 {
 	s.Intersections = s.countIntersections()
 	inter := float64(s.Intersections) / float64(s.graph.MaxPossibleIntersections())
 	disp := s.dispersionPenalty()
-	avgLen := s.avgEdgeLength() / math.Hypot(s.width, s.height)
-	anglePen := s.smallestAnglePenalty()
-	s.CachedObjectives = []float64{inter, disp, avgLen, anglePen}
+	anglePen := s.avgAnglePenalty()
+	s.CachedObjectives = []float64{inter * 3.0, disp, anglePen}
 	return s.CachedObjectives
 }
 
@@ -104,24 +102,11 @@ func (s *GraphPlaneSolution) Fitness() float64 {
 	return sum
 }
 
-// avgEdgeLength computes mean length of all edges.
-func (s *GraphPlaneSolution) avgEdgeLength() float64 {
-	tot := 0.0
-	for _, e := range s.graph.Edges {
-		p, q := s.VertPositions[e.From], s.VertPositions[e.To]
-		tot += math.Hypot(p.X-q.X, p.Y-q.Y)
-	}
-	n := float64(len(s.graph.Edges))
-	if n == 0 {
-		return 0
-	}
-	return tot / n
-}
-
-// smallestAnglePenalty computes penalty = (π - minAngle)/π, based on
-// the smallest angle between any two edges sharing a vertex.
-func (s *GraphPlaneSolution) smallestAnglePenalty() float64 {
-	minAngle := math.Pi
+// avgAnglePenalty computes penalty = (π - avgAngle)/π, based on
+// the avg angle between any two edges sharing a vertex.
+func (s *GraphPlaneSolution) avgAnglePenalty() float64 {
+	total := 0.0
+	counter := 0.0
 	for v := range s.VertPositions {
 		// collect incident neighbors
 		var neigh []VertexPos
@@ -132,6 +117,7 @@ func (s *GraphPlaneSolution) smallestAnglePenalty() float64 {
 				neigh = append(neigh, s.VertPositions[e.From])
 			}
 		}
+
 		// compute angles between each pair
 		for i := range neigh {
 			for j := i + 1; j < len(neigh); j++ {
@@ -144,25 +130,31 @@ func (s *GraphPlaneSolution) smallestAnglePenalty() float64 {
 					continue
 				}
 				ing := math.Acos(math.Min(1, math.Max(-1, dot/(du*dv))))
-				if ing < minAngle {
-					minAngle = ing
-				}
+				total += ing
+				counter += 1
 			}
 		}
 	}
-	if minAngle == math.Pi {
+
+	avgAngle := total / counter
+	if avgAngle == math.Pi {
 		return 0
 	}
-	return (math.Pi - minAngle) / math.Pi
+	return (math.Pi - avgAngle) / math.Pi
 }
 
 // dispersionPenalty penalizes too-close vertices.
 func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 	n := float64(len(s.VertPositions))
 	desired := math.Min(s.width, s.height) / math.Sqrt(n)
-	minD := math.MaxFloat64
+
+	total := 0.0
 	for i := range s.VertPositions {
-		for j := i + 1; j < len(s.VertPositions); j++ {
+		minD := math.MaxFloat64
+		for j := range s.VertPositions {
+			if i == j {
+				continue
+			}
 			d := math.Hypot(
 				s.VertPositions[i].X-s.VertPositions[j].X,
 				s.VertPositions[i].Y-s.VertPositions[j].Y)
@@ -170,11 +162,13 @@ func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 				minD = d
 			}
 		}
+		total += minD
 	}
-	if minD >= desired {
+	avgMinDist := total / n
+	if avgMinDist >= desired {
 		return 0
 	}
-	return (desired - minD) / desired
+	return (desired - avgMinDist) / desired
 }
 
 // countIntersections counts all pairwise edge crossings.
