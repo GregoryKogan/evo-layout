@@ -51,7 +51,28 @@ func (s *ZDT4Solution) Fitness() float64 {
 	return obj[0] + obj[1]
 }
 
-func (s *ZDT4Solution) Crossover(other problems.Solution) []problems.Solution {
+func ZDT4CrossoverFunc() problems.CrossoverFunc {
+	return func(parentA, parentB problems.Solution) []problems.Solution {
+		a, aOk := parentA.(*ZDT4Solution)
+		b, bOk := parentB.(*ZDT4Solution)
+		if !aOk || !bOk {
+			panic("invalid parents")
+		}
+		return a.crossover(b)
+	}
+}
+
+func ZDT4MutationFunc() problems.MutationFunc {
+	return func(individual problems.Solution) problems.Solution {
+		s, ok := individual.(*ZDT4Solution)
+		if !ok {
+			panic("invalid individual")
+		}
+		return s.mutate()
+	}
+}
+
+func (s *ZDT4Solution) crossover(other problems.Solution) []problems.Solution {
 	otherSol, ok := other.(*ZDT4Solution)
 	if !ok || s.Dimensions != otherSol.Dimensions {
 		return []problems.Solution{s}
@@ -73,7 +94,7 @@ func (s *ZDT4Solution) Crossover(other problems.Solution) []problems.Solution {
 	}
 }
 
-func (s *ZDT4Solution) Mutate() problems.Solution {
+func (s *ZDT4Solution) mutate() problems.Solution {
 	mutant := make([]float64, s.Dimensions)
 	copy(mutant, s.X)
 	// Mutate first variable (in [0,1])

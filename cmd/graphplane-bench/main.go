@@ -2,28 +2,23 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/spea2"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators"
 )
 
 func main() {
 	// Define timeout for every algorithm run.
-	timeLimit := 5 * time.Minute
+	timeLimit := 1 * time.Minute
 
-	problem := graphplane.NewGraphPlaneProblem(25, 0.35, 1.0, 1.0)
-	population := 1000
-	mutationProb := 0.1
-	crossoverProb := 0.9
+	problem := graphplane.NewGraphPlaneProblem(100, 0.1, 1.0, 1.0)
+	population := 500
 
 	// Define algorithm constructors.
 	algorithmsList := []struct {
@@ -31,57 +26,58 @@ func main() {
 		runFunc func(problem problems.Problem, logger algos.ProgressLoggerProvider)
 	}{
 		{
-			"SGA",
+			"SGA-35",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
 					PopulationSize:       population,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
-					MutationProb:         mutationProb,
-					CrossoverProb:        crossoverProb,
+					MutationFunc:         operators.NormWeightedMutation(),
+					CrossoverFunc:        operators.UniformCrossover(0.35),
 				}
 				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"SSGA",
+			"SGA-40",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				params := ssga.Params{
-					PopulationSize: population,
-					MutationProb:   mutationProb,
-					CrossoverProb:  crossoverProb,
+				params := sga.Params{
+					PopulationSize:       population,
+					ElitePercentile:      0.1,
+					MatingPoolPercentile: 0.5,
+					MutationFunc:         operators.NormWeightedMutation(),
+					CrossoverFunc:        operators.UniformCrossover(0.40),
 				}
-				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"NSGA2",
+			"SGA-45",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				// Configure NSGA-II parameters.
-				params := nsga2.NSGA2Params{
-					PopulationSize:  population,
-					GenerationLimit: math.MaxInt,
-					MutationProb:    mutationProb,
-					CrossoverProb:   crossoverProb,
+				params := sga.Params{
+					PopulationSize:       population,
+					ElitePercentile:      0.1,
+					MatingPoolPercentile: 0.5,
+					MutationFunc:         operators.NormWeightedMutation(),
+					CrossoverFunc:        operators.UniformCrossover(0.45),
 				}
-				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"SPEA2",
+			"SGA-50",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				params := spea2.Params{
-					PopulationSize:  population,
-					ArchiveSize:     population,
-					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
-					GenerationLimit: math.MaxInt,
-					MutationProb:    mutationProb,
-					CrossoverProb:   crossoverProb,
+				params := sga.Params{
+					PopulationSize:       population,
+					ElitePercentile:      0.1,
+					MatingPoolPercentile: 0.5,
+					MutationFunc:         operators.NormWeightedMutation(),
+					CrossoverFunc:        operators.UniformCrossover(0.5),
 				}
-				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},

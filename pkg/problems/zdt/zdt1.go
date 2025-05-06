@@ -52,8 +52,29 @@ func (s *ZDT1Solution) Fitness() float64 {
 	return objs[0] + objs[1]
 }
 
+func ZDT1CrossoverFunc() problems.CrossoverFunc {
+	return func(parentA, parentB problems.Solution) []problems.Solution {
+		a, aOk := parentA.(*ZDT1Solution)
+		b, bOk := parentB.(*ZDT1Solution)
+		if !aOk || !bOk {
+			panic("invalid parents")
+		}
+		return a.crossover(b)
+	}
+}
+
+func ZDT1MutationFunc() problems.MutationFunc {
+	return func(individual problems.Solution) problems.Solution {
+		s, ok := individual.(*ZDT1Solution)
+		if !ok {
+			panic("invalid individual")
+		}
+		return s.mutate()
+	}
+}
+
 // Crossover applies a uniform crossover between two ZDT solutions and returns two offspring.
-func (s *ZDT1Solution) Crossover(other problems.Solution) []problems.Solution {
+func (s *ZDT1Solution) crossover(other problems.Solution) []problems.Solution {
 	otherZDT, ok := other.(*ZDT1Solution)
 	if !ok || s.Dimensions != otherZDT.Dimensions {
 		return []problems.Solution{s}
@@ -75,9 +96,9 @@ func (s *ZDT1Solution) Crossover(other problems.Solution) []problems.Solution {
 	return []problems.Solution{child1, child2}
 }
 
-// Mutate applies mutation by perturbing each decision variable with a small probability.
+// mutate applies mutation by perturbing each decision variable with a small probability.
 // The mutated value is clamped to remain within [0, 1].
-func (s *ZDT1Solution) Mutate() problems.Solution {
+func (s *ZDT1Solution) mutate() problems.Solution {
 	mutantX := make([]float64, s.Dimensions)
 	copy(mutantX, s.X)
 	for i := range s.Dimensions {

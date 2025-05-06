@@ -9,7 +9,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
-// ForceDirectedLayer applies a Fruchterman–Reingold layout to the graph.
+// ForceDirectedLayer applies a Fruchterman–Reingold layout to the Graph.
 type ForceDirectedLayer struct {
 	*GraphPlaneSolution
 	logger      algos.ProgressLoggerProvider
@@ -34,23 +34,23 @@ func NewForceDirectedLayer(sol problems.Solution, iterations int, initialTemp fl
 		GraphPlaneSolution: gpSol,
 		logger:             logger,
 		Iterations:         iterations,
-		SpringK:            math.Min(gpSol.width, gpSol.height) / math.Sqrt(float64(gpSol.graph.NumVertices)),
+		SpringK:            math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices)),
 		InitialTemp:        initialTemp,
 	}
 }
 
 // Solve runs the spring-electrical simulation and returns a solution.
 func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
-	bestSolution := &GraphPlaneSolution{graph: p.graph, width: p.width, height: p.height, VertPositions: make([]VertexPos, len(p.VertPositions))}
+	bestSolution := &GraphPlaneSolution{Graph: p.Graph, Width: p.Width, Height: p.Height, VertPositions: make([]VertexPos, len(p.VertPositions))}
 	copy(bestSolution.VertPositions, p.VertPositions)
 	bestSolution.Objectives()
 
 	start := time.Now()
-	n := p.graph.NumVertices
+	n := p.Graph.NumVertices
 
 	// precompute adjacency lists
 	adj := make([][]int, n)
-	for _, e := range p.graph.Edges {
+	for _, e := range p.Graph.Edges {
 		adj[e.From] = append(adj[e.From], e.To)
 		adj[e.To] = append(adj[e.To], e.From)
 	}
@@ -105,8 +105,8 @@ func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
 				px := p.VertPositions[i].X + disp[i].X*scale
 				py := p.VertPositions[i].Y + disp[i].Y*scale
 				// keep within bounds
-				p.VertPositions[i].X = math.Min(p.width, math.Max(0, px))
-				p.VertPositions[i].Y = math.Min(p.height, math.Max(0, py))
+				p.VertPositions[i].X = math.Min(p.Width, math.Max(0, px))
+				p.VertPositions[i].Y = math.Min(p.Height, math.Max(0, py))
 			}
 		}
 

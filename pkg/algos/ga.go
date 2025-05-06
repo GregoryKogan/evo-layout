@@ -20,12 +20,16 @@ type GeneticAlgorithmStep struct {
 	ParetoFront [][]float64       `json:"pareto_front"`
 }
 
-func NewGeneticAlgorithm(problem problems.Problem, timeout time.Duration, logger ProgressLoggerProvider) *GeneticAlgorithm {
+func NewGeneticAlgorithm(
+	problem problems.Problem,
+	timeout time.Duration,
+	logger ProgressLoggerProvider,
+) *GeneticAlgorithm {
 	return &GeneticAlgorithm{
+		Problem:                problem,
+		Solution:               problem.RandomSolution(),
 		StartTimestamp:         time.Now(),
 		Timeout:                timeout,
 		ProgressLoggerProvider: logger,
-		Problem:                problem,
-		Solution:               problem.RandomSolution(),
 	}
 }

@@ -151,17 +151,11 @@ func (alg *Algorithm) reproduce() {
 	for len(nextP) < alg.params.PopulationSize {
 		p1 := alg.tournamentSelect()
 		p2 := alg.tournamentSelect()
-		var kids []problems.Solution
-		if rand.Float64() < alg.params.CrossoverProb {
-			kids = p1.sol.Crossover(p2.sol)
-		} else {
-			kids = []problems.Solution{p1.sol, p2.sol}
-		}
-		for _, k := range kids {
-			if rand.Float64() < alg.params.MutationProb {
-				k = k.Mutate()
-			}
-			nextP = append(nextP, Individual{sol: k})
+
+		children := alg.params.CrossoverFunc(p1.sol, p2.sol)
+		for _, child := range children {
+			child = alg.params.MutationFunc(child)
+			nextP = append(nextP, Individual{sol: child})
 			if len(nextP) >= alg.params.PopulationSize {
 				break
 			}

@@ -17,10 +17,10 @@ type AlgorithmicProblem interface {
 	AlgorithmicSolution() AlgorithmicSolution
 }
 
-type Solution interface {
-	Crossover(Solution) []Solution
-	Mutate() Solution
+type CrossoverFunc func(parentA, parentB Solution) []Solution
+type MutationFunc func(individual Solution) Solution
 
+type Solution interface {
 	// Multi-objective genetic algorithms (like NSGA-II, SPEA2) use Objectives() method
 	// Single objective problems just return a slice with one value
 	// Single-objective genetic algorithms (like SGA, SSGA) use Fitness() method

@@ -1,7 +1,9 @@
 package ssga
 
+import "github.com/GregoryKogan/genetic-algorithms/pkg/problems"
+
 type Params struct {
 	PopulationSize int
-	CrossoverProb  float64
-	MutationProb   float64
+	MutationFunc   problems.MutationFunc
+	CrossoverFunc  problems.CrossoverFunc
 }

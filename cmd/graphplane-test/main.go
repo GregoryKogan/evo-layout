@@ -11,6 +11,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators"
 )
 
 func main() {
@@ -19,8 +20,8 @@ func main() {
 
 	problem := graphplane.NewGraphPlaneProblem(100, 0.1, 1.0, 1.0)
 	population := 1000
-	mutationProb := 0.5
-	crossoverProb := 0.9
+	mutationFunc := operators.NormWeightedMutation()
+	crossoverFunc := operators.UniformCrossover(0.5)
 
 	// Create a directory for logs.
 	os.RemoveAll("logs")
@@ -34,8 +35,8 @@ func main() {
 	params := nsga2.NSGA2Params{
 		PopulationSize:  population,
 		GenerationLimit: math.MaxInt,
-		MutationProb:    mutationProb,
-		CrossoverProb:   crossoverProb,
+		MutationFunc:    mutationFunc,
+		CrossoverFunc:   crossoverFunc,
 	}
 	alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 

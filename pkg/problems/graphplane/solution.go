@@ -13,10 +13,10 @@ type VertexPos struct {
 	Y float64 `json:"y"`
 }
 
-// GraphPlaneSolution represents a placement of graph vertices in the plane.
+// GraphPlaneSolution represents a placement of Graph vertices in the plane.
 type GraphPlaneSolution struct {
-	graph            *Graph
-	width, height    float64
+	Graph            *Graph
+	Width, Height    float64
 	Intersections    int         `json:"intersections"`
 	VertPositions    []VertexPos `json:"vertices"`
 	CachedObjectives []float64   `json:"objectives"`
@@ -24,55 +24,12 @@ type GraphPlaneSolution struct {
 
 // RandomGraphPlaneSolution initializes vertices randomly in [0,width]×[0,height].
 func RandomGraphPlaneSolution(g *Graph, width, height float64) problems.Solution {
-	s := &GraphPlaneSolution{graph: g, width: width, height: height}
+	s := &GraphPlaneSolution{Graph: g, Width: width, Height: height}
 	s.VertPositions = make([]VertexPos, g.NumVertices)
 	for i := range s.VertPositions {
 		s.VertPositions[i] = VertexPos{X: rand.Float64() * width, Y: rand.Float64() * height}
 	}
 	return s
-}
-
-// Crossover combines two parent solutions via uniform position mixing.
-func (s *GraphPlaneSolution) Crossover(other problems.Solution) []problems.Solution {
-	rhs, ok := other.(*GraphPlaneSolution)
-	if !ok || len(s.VertPositions) != len(rhs.VertPositions) {
-		return []problems.Solution{s}
-	}
-	// Create two children
-	c1 := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
-	c2 := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
-	c1.VertPositions = make([]VertexPos, len(s.VertPositions))
-	c2.VertPositions = make([]VertexPos, len(s.VertPositions))
-	for i := range s.VertPositions {
-		if rand.Float64() < 0.5 {
-			c1.VertPositions[i] = s.VertPositions[i]
-			c2.VertPositions[i] = rhs.VertPositions[i]
-		} else {
-			c1.VertPositions[i] = rhs.VertPositions[i]
-			c2.VertPositions[i] = s.VertPositions[i]
-		}
-	}
-	return []problems.Solution{c1, c2}
-}
-
-// Mutate perturbs vertices, focusing on those with many crossings.
-func (s *GraphPlaneSolution) Mutate() problems.Solution {
-	m := &GraphPlaneSolution{graph: s.graph, width: s.width, height: s.height}
-	m.VertPositions = make([]VertexPos, len(s.VertPositions))
-	copy(m.VertPositions, s.VertPositions)
-	// Intersection-based weights
-	weights := s.intersectionWeights()
-	for i := range m.VertPositions {
-		// base probability plus weighted factor
-		p := weights[i]/(weights[i]+1) + 0.1
-		if rand.Float64() < p {
-			dx := rand.NormFloat64() * s.width
-			dy := rand.NormFloat64() * s.height
-			m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.width)
-			m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.height)
-		}
-	}
-	return m
 }
 
 // Objectives returns:
@@ -85,7 +42,7 @@ func (s *GraphPlaneSolution) Objectives() []float64 {
 		return s.CachedObjectives
 	}
 	s.Intersections = s.countIntersections()
-	inter := float64(s.Intersections) / float64(s.graph.MaxPossibleIntersections())
+	inter := float64(s.Intersections) / float64(s.Graph.MaxPossibleIntersections())
 	disp := s.dispersionPenalty()
 	anglePen := s.avgAnglePenalty()
 	s.CachedObjectives = []float64{inter * 3.0, disp, anglePen}
@@ -110,7 +67,7 @@ func (s *GraphPlaneSolution) avgAnglePenalty() float64 {
 	for v := range s.VertPositions {
 		// collect incident neighbors
 		var neigh []VertexPos
-		for _, e := range s.graph.Edges {
+		for _, e := range s.Graph.Edges {
 			if e.From == v {
 				neigh = append(neigh, s.VertPositions[e.To])
 			} else if e.To == v {
@@ -146,7 +103,7 @@ func (s *GraphPlaneSolution) avgAnglePenalty() float64 {
 // dispersionPenalty penalizes too-close vertices.
 func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 	n := float64(len(s.VertPositions))
-	desired := math.Min(s.width, s.height) / math.Sqrt(n)
+	desired := math.Min(s.Width, s.Height) / math.Sqrt(n)
 
 	total := 0.0
 	for i := range s.VertPositions {
@@ -174,11 +131,11 @@ func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 // countIntersections counts all pairwise edge crossings.
 func (s *GraphPlaneSolution) countIntersections() int {
 	cnt := 0
-	for i := range s.graph.Edges {
-		e1 := s.graph.Edges[i]
+	for i := range s.Graph.Edges {
+		e1 := s.Graph.Edges[i]
 		p1, p2 := s.VertPositions[e1.From], s.VertPositions[e1.To]
-		for j := i + 1; j < len(s.graph.Edges); j++ {
-			e2 := s.graph.Edges[j]
+		for j := i + 1; j < len(s.Graph.Edges); j++ {
+			e2 := s.Graph.Edges[j]
 			if sharesVertex(e1, e2) {
 				continue
 			}
@@ -189,29 +146,6 @@ func (s *GraphPlaneSolution) countIntersections() int {
 		}
 	}
 	return cnt
-}
-
-// intersectionWeights returns per-vertex count of incident crossings.
-func (s *GraphPlaneSolution) intersectionWeights() []float64 {
-	w := make([]float64, len(s.VertPositions))
-	for i := range s.graph.Edges {
-		e1 := s.graph.Edges[i]
-		p1, p2 := s.VertPositions[e1.From], s.VertPositions[e1.To]
-		for j := i + 1; j < len(s.graph.Edges); j++ {
-			e2 := s.graph.Edges[j]
-			if sharesVertex(e1, e2) {
-				continue
-			}
-			p3, p4 := s.VertPositions[e2.From], s.VertPositions[e2.To]
-			if segmentsIntersect(p1, p2, p3, p4) {
-				w[e1.From]++
-				w[e1.To]++
-				w[e2.From]++
-				w[e2.To]++
-			}
-		}
-	}
-	return w
 }
 
 // sharesVertex checks if two edges share an endpoint.
@@ -225,15 +159,4 @@ func segmentsIntersect(a, b, c, d VertexPos) bool {
 		return (w.Y-u.Y)*(v.X-u.X) > (v.Y-u.Y)*(w.X-u.X)
 	}
 	return ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d)
-}
-
-// clamp bounds v to [min,max].
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
 }

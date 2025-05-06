@@ -102,24 +102,14 @@ func (alg *Algorithm) initPopulation() {
 // makeOffspring performs selection, crossover and mutation to create offspring population.
 func (alg *Algorithm) makeOffspring() []Individual {
 	offspring := make([]Individual, 0, alg.params.PopulationSize)
-	// Create offspring equal to population size.
 	for len(offspring) < alg.params.PopulationSize {
-		// Select two parents using tournament selection.
 		parent1 := tournamentSelection(alg.population)
 		parent2 := tournamentSelection(alg.population)
 
-		// Crossover with probability.
-		var children []problems.Solution
-		if rand.Float64() < alg.params.CrossoverProb {
-			children = parent1.Solution.Crossover(parent2.Solution)
-		} else {
-			children = []problems.Solution{parent1.Solution, parent2.Solution}
-		}
-		// Mutate each child.
+		children := alg.params.CrossoverFunc(parent1.Solution, parent2.Solution)
+
 		for _, child := range children {
-			if rand.Float64() < alg.params.MutationProb {
-				child = child.Mutate()
-			}
+			child = alg.params.MutationFunc(child)
 			offspring = append(offspring, Individual{Solution: child})
 			if len(offspring) >= alg.params.PopulationSize {
 				break

@@ -16,12 +16,18 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/zdt"
 )
 
+type Task struct {
+	Problem       problems.Problem
+	MutationFunc  problems.MutationFunc
+	CrossoverFunc problems.CrossoverFunc
+}
+
 func main() {
 	// Define timeout for every algorithm run.
 	timeLimit := 1 * time.Minute
 
-	// Define problem instances.
-	problemsList := []problems.Problem{
+	// Define task instances.
+	taskList := []Task{
 		// graphplane.NewGraphPlaneProblem(12, 0.35, 100.0, 100.0),
 		// knapsack.NewKnapsackProblem(knapsack.KnapsackProblemParams{
 		// 	Dimensions:         10,
@@ -31,74 +37,72 @@ func main() {
 		// 	Constraints:        []int{30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000},
 		// }),
 		// tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 100}),
-		zdt.NewZDT1Problem(30), // 30-dimensional ZDT1
-		zdt.NewZDT2Problem(30),
-		zdt.NewZDT3Problem(30),
-		zdt.NewZDT4Problem(30),
-		zdt.NewZDT6Problem(30),
+		{zdt.NewZDT1Problem(30), zdt.ZDT1MutationFunc(), zdt.ZDT1CrossoverFunc()}, // 30-dimensional ZDT1
+		{zdt.NewZDT2Problem(30), zdt.ZDT2MutationFunc(), zdt.ZDT2CrossoverFunc()},
+		{zdt.NewZDT3Problem(30), zdt.ZDT3MutationFunc(), zdt.ZDT3CrossoverFunc()},
+		{zdt.NewZDT4Problem(30), zdt.ZDT4MutationFunc(), zdt.ZDT4CrossoverFunc()},
+		{zdt.NewZDT6Problem(30), zdt.ZDT6MutationFunc(), zdt.ZDT6CrossoverFunc()},
 	}
 
 	population := 100
-	mutationProb := 0.1
-	crossoverProb := 0.9
 
 	// Define algorithm constructors.
 	algorithmsList := []struct {
 		name    string
-		runFunc func(problem problems.Problem, logger algos.ProgressLoggerProvider)
+		runFunc func(task Task, logger algos.ProgressLoggerProvider)
 	}{
 		{
 			"SGA",
-			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+			func(task Task, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
 					PopulationSize:       population,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
-					MutationProb:         mutationProb,
-					CrossoverProb:        crossoverProb,
+					MutationFunc:         task.MutationFunc,
+					CrossoverFunc:        task.CrossoverFunc,
 				}
-				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(task.Problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
 			"SSGA",
-			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+			func(task Task, logger algos.ProgressLoggerProvider) {
 				params := ssga.Params{
 					PopulationSize: population,
-					MutationProb:   mutationProb,
-					CrossoverProb:  crossoverProb,
+					MutationFunc:   task.MutationFunc,
+					CrossoverFunc:  task.CrossoverFunc,
 				}
-				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := ssga.NewAlgorithm(task.Problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
 			"NSGA2",
-			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+			func(task Task, logger algos.ProgressLoggerProvider) {
 				// Configure NSGA-II parameters.
 				params := nsga2.NSGA2Params{
 					PopulationSize:  population,
 					GenerationLimit: 100,
-					MutationProb:    mutationProb,
-					CrossoverProb:   crossoverProb,
+					MutationFunc:    task.MutationFunc,
+					CrossoverFunc:   task.CrossoverFunc,
 				}
-				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := nsga2.NewAlgorithm(task.Problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
 			"SPEA2",
-			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
+			func(task Task, logger algos.ProgressLoggerProvider) {
 				params := spea2.Params{
 					PopulationSize:  population,
 					ArchiveSize:     population,
 					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
 					GenerationLimit: 100,
-					MutationProb:    mutationProb,
-					CrossoverProb:   crossoverProb,
+					MutationFunc:    task.MutationFunc,
+					CrossoverFunc:   task.CrossoverFunc,
 				}
-				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := spea2.NewAlgorithm(task.Problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
@@ -109,17 +113,17 @@ func main() {
 	os.Mkdir("logs", 0755)
 
 	// Loop over every problem and algorithm.
-	for _, prob := range problemsList {
+	for _, task := range taskList {
 		for _, alg := range algorithmsList {
 			// Create a dedicated log file for this (problem, algorithm) pair.
-			logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", prob.Name(), alg.name))
+			logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", task.Problem.Name(), alg.name))
 			progressLogger := algos.NewProgressLogger(logPath)
 			progressLogger.InitLogging()
-			progressLogger.LogProblem(prob)
+			progressLogger.LogProblem(task.Problem)
 
-			fmt.Printf("Testing %s on %s\n", alg.name, prob.Name())
-			runAlgorithm(alg.name, prob.Name(), func() {
-				alg.runFunc(prob, progressLogger)
+			fmt.Printf("Testing %s on %s\n", alg.name, task.Problem.Name())
+			runAlgorithm(alg.name, task.Problem.Name(), func() {
+				alg.runFunc(task, progressLogger)
 			}, timeLimit)
 		}
 	}
