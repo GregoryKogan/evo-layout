@@ -39,9 +39,20 @@ func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2P
 	}
 }
 
+func (alg *Algorithm) Seed(seedSolution problems.Solution) {
+	alg.population = make([]Individual, alg.params.PopulationSize)
+	for i := range alg.params.PopulationSize {
+		alg.population[i] = Individual{Solution: alg.params.MutationFunc(seedSolution)}
+	}
+	alg.population[0] = Individual{Solution: seedSolution}
+	alg.Solution = seedSolution
+}
+
 // Run executes the NSGA-II process until timeout.
 func (alg *Algorithm) Run() {
-	alg.initPopulation()
+	if len(alg.population) < alg.params.PopulationSize {
+		alg.initPopulation()
+	}
 	for time.Since(alg.StartTimestamp) < alg.Timeout && alg.generation < alg.params.GenerationLimit {
 		alg.generation++
 
@@ -73,7 +84,7 @@ func (alg *Algorithm) Run() {
 			var pareto [][]float64
 			for _, ind := range fronts[0] {
 				pareto = append(pareto, ind.Solution.Objectives())
-				if lexLess(ind.Solution.Objectives(), alg.Solution.Objectives()) {
+				if ind.Solution.Fitness() < alg.Solution.Fitness() {
 					alg.Solution = ind.Solution
 				}
 			}
@@ -226,16 +237,4 @@ func dominates(a, b problems.Solution) bool {
 		}
 	}
 	return less
-}
-
-// lexLess returns true if a is lexicographically smaller than b.
-func lexLess(a, b []float64) bool {
-	for i := 0; i < len(a) && i < len(b); i++ {
-		if a[i] < b[i] {
-			return true
-		} else if a[i] > b[i] {
-			return false
-		}
-	}
-	return false
 }

@@ -1,4 +1,4 @@
-package operators
+package crossover
 
 import (
 	"math/rand/v2"
@@ -7,7 +7,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
 )
 
-func UniformCrossover(swapProb float64) problems.CrossoverFunc {
+func Uniform(swapProb float64) problems.CrossoverFunc {
 	return func(parentA, parentB problems.Solution) []problems.Solution {
 		a, aOk := parentA.(*graphplane.GraphPlaneSolution)
 		b, bOk := parentB.(*graphplane.GraphPlaneSolution)

@@ -5,17 +5,22 @@ import (
 )
 
 type GraphPlaneProblem struct {
+	name   string
 	Graph  *Graph  `json:"graph"`
 	Width  float64 `json:"width"`
 	Height float64 `json:"height"`
 }
 
-func NewGraphPlaneProblem(numVertices int, edgeFill float64, width, height float64) problems.Problem {
-	return &GraphPlaneProblem{NewRandomGraph(numVertices, edgeFill), width, height}
+func NewGraphPlaneProblem(numVertices int, edgeFill float64) problems.Problem {
+	return &GraphPlaneProblem{"GraphPlane", NewRandomGraph(numVertices, edgeFill), 1.0, 1.0}
+}
+
+func NewPlanarGraphPlaneProblem(numVertices int) problems.Problem {
+	return &GraphPlaneProblem{"PlanarGraphPlane", NewRandomPlanarGraph(numVertices), 1.0, 1.0}
 }
 
 func (p *GraphPlaneProblem) Name() string {
-	return "GraphPlane"
+	return p.name
 }
 
 func (p *GraphPlaneProblem) RandomSolution() problems.Solution {

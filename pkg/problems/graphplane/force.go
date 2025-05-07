@@ -34,7 +34,7 @@ func NewForceDirectedLayer(sol problems.Solution, iterations int, initialTemp fl
 		GraphPlaneSolution: gpSol,
 		logger:             logger,
 		Iterations:         iterations,
-		SpringK:            math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices)),
+		SpringK:            (math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices))) * 0.7,
 		InitialTemp:        initialTemp,
 	}
 }

@@ -66,7 +66,7 @@ func (alg *Algorithm) Evolve() {
 	// perform elitism
 	newPopulation = append(newPopulation, alg.population[:alg.eliteSize]...)
 
-	// generate rest of the population from mating pool
+	// generate rest of the population
 	for len(newPopulation) < alg.params.PopulationSize {
 		p1Ind := rand.IntN(alg.matingPoolSize)
 		p2Ind := rand.IntN(alg.matingPoolSize)
@@ -76,12 +76,13 @@ func (alg *Algorithm) Evolve() {
 		parent1 := alg.population[p1Ind]
 		parent2 := alg.population[p2Ind]
 
-		children := alg.params.CrossoverFunc(parent1, parent2)
+		// children := alg.params.CrossoverFunc(parent1, parent2)
+		children := []problems.Solution{parent1, parent2}
 
 		for _, child := range children {
 			child = alg.params.MutationFunc(child)
 			newPopulation = append(newPopulation, child)
-			if len(newPopulation) > alg.params.PopulationSize {
+			if len(newPopulation) >= alg.params.PopulationSize {
 				break
 			}
 		}

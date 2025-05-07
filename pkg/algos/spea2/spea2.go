@@ -127,7 +127,7 @@ func (alg *Algorithm) logParetoFront() {
 	for _, ind := range alg.archive {
 		if ind.rawFit < 1 {
 			pareto = append(pareto, ind.sol.Objectives())
-			if lexLess(ind.sol.Objectives(), alg.Solution.Objectives()) {
+			if ind.sol.Fitness() < alg.Solution.Fitness() {
 				alg.Solution = ind.sol
 				improved = true
 			}
@@ -268,16 +268,4 @@ func euclidean(a, b []float64) float64 {
 		sum += d * d
 	}
 	return math.Sqrt(sum)
-}
-
-// lexLess returns true if a is lexicographically smaller than b.
-func lexLess(a, b []float64) bool {
-	for i := 0; i < len(a) && i < len(b); i++ {
-		if a[i] < b[i] {
-			return true
-		} else if a[i] > b[i] {
-			return false
-		}
-	}
-	return false
 }

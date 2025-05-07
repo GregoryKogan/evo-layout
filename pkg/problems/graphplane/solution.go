@@ -15,11 +15,12 @@ type VertexPos struct {
 
 // GraphPlaneSolution represents a placement of Graph vertices in the plane.
 type GraphPlaneSolution struct {
-	Graph            *Graph
-	Width, Height    float64
+	Graph            *Graph      `json:"-"`
+	Width, Height    float64     `json:"-"`
 	Intersections    int         `json:"intersections"`
 	VertPositions    []VertexPos `json:"vertices"`
 	CachedObjectives []float64   `json:"objectives"`
+	CachedFitness    float64     `json:"fitness"`
 }
 
 // RandomGraphPlaneSolution initializes vertices randomly in [0,width]×[0,height].
@@ -45,7 +46,7 @@ func (s *GraphPlaneSolution) Objectives() []float64 {
 	inter := float64(s.Intersections) / float64(s.Graph.MaxPossibleIntersections())
 	disp := s.dispersionPenalty()
 	anglePen := s.avgAnglePenalty()
-	s.CachedObjectives = []float64{inter * 3.0, disp, anglePen}
+	s.CachedObjectives = []float64{inter * 10000.0, disp, anglePen}
 	return s.CachedObjectives
 }
 
@@ -56,6 +57,7 @@ func (s *GraphPlaneSolution) Fitness() float64 {
 	for _, v := range o {
 		sum += v
 	}
+	s.CachedFitness = sum
 	return sum
 }
 
@@ -104,8 +106,10 @@ func (s *GraphPlaneSolution) avgAnglePenalty() float64 {
 func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 	n := float64(len(s.VertPositions))
 	desired := math.Min(s.Width, s.Height) / math.Sqrt(n)
+	minimum := desired / 100.0
 
 	total := 0.0
+	lessThanMin := false
 	for i := range s.VertPositions {
 		minD := math.MaxFloat64
 		for j := range s.VertPositions {
@@ -120,7 +124,15 @@ func (s *GraphPlaneSolution) dispersionPenalty() float64 {
 			}
 		}
 		total += minD
+		if minD < minimum {
+			lessThanMin = true
+		}
 	}
+
+	if lessThanMin {
+		return math.MaxFloat64
+	}
+
 	avgMinDist := total / n
 	if avgMinDist >= desired {
 		return 0

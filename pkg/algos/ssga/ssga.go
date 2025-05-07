@@ -96,7 +96,7 @@ func (alg *Algorithm) tournamentSelect() int {
 	if ind1 == ind2 {
 		return ind1
 	}
-	if alg.population[ind1].Fitness() > alg.population[ind2].Fitness() {
+	if alg.population[ind1].Fitness() < alg.population[ind2].Fitness() {
 		return ind1
 	}
 	return ind2

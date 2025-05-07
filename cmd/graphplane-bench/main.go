@@ -2,22 +2,59 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/spea2"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators/crossover"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators/mutation"
 )
+
+// 100 vertexes, 0.1 fill, 1min limit, population 500, algo SSGA, uniform(0.45) crossover
+// Tension Vector - 11396 intersections (eps=0.01)
+// Norm           - 12954 intersections
+// Percentage     - 13735 intersections
+// Uniform        - 13921 intersections
+// Mirror         - 14011 intersections
+
+// 100 vertexes, 0.1 fill, 1min limit, population 500, algo SSGA, TV(eps=0.01) mutation
+// uniform(0.30) crossover - 14015 intersections
+// uniform(0.35) crossover - 13531 intersections
+// uniform(0.40) crossover - 12349 intersections
+// uniform(0.45) crossover - 12340 intersections (best)
+// uniform(0.50) crossover - 12912 intersections
+
+// Planar 100 vertexes, 5min limit, population 500, TV(eps=0.01) mutation, uniform(0.45) crossover
+// SPEA2 - 1505 intersections
+// NSGA2 - 1794 intersections
+// SSGA  - 1878 intersections
+// SGA   - 3697 intersections
+// Planar 100 vertexes Force (2000 iterations, 0.002 init temp) - 108 intersections
+// NSGA2 100 seconds -> Force 2000 iters - 109 intersections
+// Force 2000 iters -> NSGA2 1 min - 106 intersections (133 -> 106)
+
+// Planar 50 vertexes, 5min limit, population 500, TV(eps=0.01) mutation, uniform(0.45) crossover
+// NSGA2 - 169 intersections
+// SPEA2 - 295 intersections
+// SSGA  - 312 intersections
+// SGA   - 622 intersections
+// Planar 50 vertexes Force (2000 iterations, 0.002 init temp) - 65 intersections
+// NSGA2 100 seconds -> Force 2000 iters - 25 intersections
+// Force 2000 iters -> NSGA2 1 min - 8 intersections (54 -> 8)
 
 func main() {
 	// Define timeout for every algorithm run.
-	timeLimit := 1 * time.Minute
+	timeLimit := 5 * time.Minute
 
-	problem := graphplane.NewGraphPlaneProblem(100, 0.1, 1.0, 1.0)
+	problem := graphplane.NewPlanarGraphPlaneProblem(50)
 	population := 500
 
 	// Define algorithm constructors.
@@ -26,58 +63,57 @@ func main() {
 		runFunc func(problem problems.Problem, logger algos.ProgressLoggerProvider)
 	}{
 		{
-			"SGA-35",
+			"SGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
 					PopulationSize:       population,
 					ElitePercentile:      0.1,
 					MatingPoolPercentile: 0.5,
-					MutationFunc:         operators.NormWeightedMutation(),
-					CrossoverFunc:        operators.UniformCrossover(0.35),
+					MutationFunc:         mutation.TensionVector(0.01),
+					CrossoverFunc:        crossover.Uniform(0.45),
 				}
 				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"SGA-40",
+			"SSGA",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				params := sga.Params{
-					PopulationSize:       population,
-					ElitePercentile:      0.1,
-					MatingPoolPercentile: 0.5,
-					MutationFunc:         operators.NormWeightedMutation(),
-					CrossoverFunc:        operators.UniformCrossover(0.40),
+				params := ssga.Params{
+					PopulationSize: population,
+					MutationFunc:   mutation.TensionVector(0.01),
+					CrossoverFunc:  crossover.Uniform(0.45),
 				}
-				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"SGA-45",
+			"NSGA2",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				params := sga.Params{
-					PopulationSize:       population,
-					ElitePercentile:      0.1,
-					MatingPoolPercentile: 0.5,
-					MutationFunc:         operators.NormWeightedMutation(),
-					CrossoverFunc:        operators.UniformCrossover(0.45),
+				// Configure NSGA-II parameters.
+				params := nsga2.NSGA2Params{
+					PopulationSize:  population,
+					GenerationLimit: math.MaxInt,
+					MutationFunc:    mutation.TensionVector(0.01),
+					CrossoverFunc:   crossover.Uniform(0.45),
 				}
-				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},
 		{
-			"SGA-50",
+			"SPEA2",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
-				params := sga.Params{
-					PopulationSize:       population,
-					ElitePercentile:      0.1,
-					MatingPoolPercentile: 0.5,
-					MutationFunc:         operators.NormWeightedMutation(),
-					CrossoverFunc:        operators.UniformCrossover(0.5),
+				params := spea2.Params{
+					PopulationSize:  population,
+					ArchiveSize:     population,
+					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
+					GenerationLimit: math.MaxInt,
+					MutationFunc:    mutation.TensionVector(0.01),
+					CrossoverFunc:   crossover.Uniform(0.45),
 				}
-				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
 				alg.Run()
 			},
 		},

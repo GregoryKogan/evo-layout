@@ -3,6 +3,8 @@ package graphplane
 import (
 	"fmt"
 	"math/rand/v2"
+
+	"github.com/fogleman/delaunay"
 )
 
 type Graph struct {
@@ -46,6 +48,45 @@ func NewRandomGraph(numVertices int, edgeFill float64) *Graph {
 	}
 
 	return &Graph{NumVertices: numVertices, NumEdges: numEdges, Edges: edges}
+}
+
+// NewRandomPlanarGraph builds a planar graph using Delaunay triangulation.
+func NewRandomPlanarGraph(numVertices int) *Graph {
+	// 1) Sample random points in unit square
+	pts := make([]delaunay.Point, numVertices)
+	for i := range pts {
+		pts[i] = delaunay.Point{X: rand.Float64(), Y: rand.Float64()}
+	}
+
+	// 2) Compute Delaunay triangulation (planar maximal graph)
+	tri, err := delaunay.Triangulate(pts)
+	if err != nil {
+		panic(err)
+	}
+
+	// 3) Extract unique undirected edges
+	edgeMap := make(map[[2]int]struct{})
+	for ti := 0; ti < len(tri.Triangles); ti += 3 {
+		for k := 0; k < 3; k++ {
+			a, b := tri.Triangles[ti+k], tri.Triangles[ti+(k+1)%3]
+			if a > b {
+				a, b = b, a
+			}
+			edgeMap[[2]int{a, b}] = struct{}{}
+		}
+	}
+
+	edges := make([]Edge, 0, len(edgeMap))
+	for e := range edgeMap {
+		edges = append(edges, Edge{From: e[0], To: e[1]})
+	}
+
+	// 6) Build and return Graph
+	return &Graph{
+		NumVertices: numVertices,
+		NumEdges:    len(edges),
+		Edges:       edges,
+	}
 }
 
 // MaxPossibleIntersections returns the count of edge pairs

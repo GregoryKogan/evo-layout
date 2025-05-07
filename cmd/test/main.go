@@ -55,11 +55,10 @@ func main() {
 			"SGA",
 			func(task Task, logger algos.ProgressLoggerProvider) {
 				params := sga.Params{
-					PopulationSize:       population,
-					ElitePercentile:      0.1,
-					MatingPoolPercentile: 0.5,
-					MutationFunc:         task.MutationFunc,
-					CrossoverFunc:        task.CrossoverFunc,
+					PopulationSize:  population,
+					ElitePercentile: 0.1,
+					MutationFunc:    task.MutationFunc,
+					CrossoverFunc:   task.CrossoverFunc,
 				}
 				alg := sga.NewAlgorithm(task.Problem, timeLimit, params, logger)
 				alg.Run()
