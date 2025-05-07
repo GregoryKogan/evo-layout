@@ -6,7 +6,7 @@ let loaded = false;
 // Define a zoom factor for screen margins.
 const zoom = 0.95;
 
-const filename = 'GraphPlane_NSGA2'
+const filename = 'PlanarGraphPlane_NSGA2+Force'
 const gifLenSeconds = 10;
 const maxFrameRate = 30;
 const generateGif = false;

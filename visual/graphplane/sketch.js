@@ -11,7 +11,7 @@ function setup() {
   fill(255);
   stroke(255);
   textAlign(LEFT);
-  fetch("GraphPlane_Force.jsonl").then((response) => {
+  fetch("PlanarGraphPlane_NSGA2+Force.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
         "[" +
@@ -27,16 +27,17 @@ function setup() {
     });
   });
   frameRate(25);
-  // saveGif("gp-25-35-NSGA2+Force.gif", 10);
+  // saveGif("gp-50-planar-Force->NSGA2.gif", 10);
 }
 
 function draw() {
   if (!loaded || done) return;
-  generation += frameCount % 5 == 1;
-  if (solutions[generation].generation == null) {
-    frameRate(25);
-    generation += 7;
-    if (solutions[generation].solution.intersections == solutions[generation - 8].solution.intersections) generation += 64;
+  generation++;
+  if (solutions[generation] && solutions[generation].generation == null) {
+    generation += 8;
+    if (solutions[generation].solution.intersections == solutions[generation - 8].solution.intersections) generation += 32;
+  } else if (solutions[generation] && solutions[generation].generation != null) {
+    generation += 8;
   }
   if (generation >= solutions.length) {
     done = true;

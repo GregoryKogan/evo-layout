@@ -1,8 +1,8 @@
 import json
 import os
 
-PROBLEM = "GraphPlane"
-ALGO = "SSGA"
+PROBLEM = "PlanarGraphPlane"
+ALGO = "SPEA2"
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(script_path, f"{PROBLEM}_{ALGO}.jsonl")
