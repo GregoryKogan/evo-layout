@@ -18,33 +18,35 @@ type ForceDirectedLayer struct {
 	InitialTemp float64 // starting temperature
 }
 
+type ForceLayerParams struct {
+	Iterations  int
+	InitialTemp float64
+	SpringK     float64
+}
+
 type Step struct {
 	algos.GeneticAlgorithmStep
 	Iteration int `json:"iteration"`
 }
 
 // NewForceDirectedProblem constructs a force-directed solver.
-func NewForceDirectedLayer(sol problems.Solution, iterations int, initialTemp float64, logger algos.ProgressLoggerProvider) ForceDirectedLayer {
-	gpSol, ok := sol.(*GraphPlaneSolution)
+func NewForceDirectedLayer(initialSolution problems.Solution, params ForceLayerParams, logger algos.ProgressLoggerProvider) ForceDirectedLayer {
+	gpSol, ok := initialSolution.(*GraphPlaneSolution)
 	if !ok {
-		fmt.Printf("%#+v\n", sol)
+		fmt.Printf("%#+v\n", initialSolution)
 		panic("type error")
 	}
 	return ForceDirectedLayer{
 		GraphPlaneSolution: gpSol,
 		logger:             logger,
-		Iterations:         iterations,
-		SpringK:            (math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices))) * 0.7,
-		InitialTemp:        initialTemp,
+		Iterations:         params.Iterations,
+		SpringK:            (math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices))) * params.SpringK,
+		InitialTemp:        params.InitialTemp,
 	}
 }
 
 // Solve runs the spring-electrical simulation and returns a solution.
 func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
-	bestSolution := &GraphPlaneSolution{Graph: p.Graph, Width: p.Width, Height: p.Height, VertPositions: make([]VertexPos, len(p.VertPositions))}
-	copy(bestSolution.VertPositions, p.VertPositions)
-	bestSolution.Objectives()
-
 	start := time.Now()
 	n := p.Graph.NumVertices
 
@@ -115,14 +117,8 @@ func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
 
 		p.CachedObjectives = nil
 		p.Objectives()
-		if p.Intersections < bestSolution.Intersections {
-			copy(bestSolution.VertPositions, p.VertPositions)
-			bestSolution.CachedObjectives = nil
-			bestSolution.Objectives()
-		}
 		p.logger.LogStep(Step{algos.GeneticAlgorithmStep{Elapsed: time.Since(start), Solution: p.GraphPlaneSolution}, iter})
 	}
 
-	p.logger.LogStep(Step{algos.GeneticAlgorithmStep{Elapsed: time.Since(start), Solution: bestSolution}, p.Iterations})
-	return problems.AlgorithmicSolution{Solution: bestSolution, TimeTook: time.Since(start)}
+	return problems.AlgorithmicSolution{Solution: p.GraphPlaneSolution, TimeTook: time.Since(start)}
 }
