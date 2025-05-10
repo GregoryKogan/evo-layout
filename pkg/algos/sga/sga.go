@@ -12,22 +12,17 @@ import (
 type Algorithm struct {
 	algos.GeneticAlgorithm
 	params         Params
-	generations    int
+	generation     int
 	population     []problems.Solution
 	eliteSize      int
 	matingPoolSize int
 }
 
-type Step struct {
-	algos.GeneticAlgorithmStep
-	Generation int `json:"generation"`
-}
-
-func NewAlgorithm(problem problems.Problem, timeout time.Duration, params Params, logger algos.ProgressLoggerProvider) *Algorithm {
+func NewAlgorithm(problem problems.Problem, params Params, generationLimit int, logger algos.ProgressLoggerProvider) *Algorithm {
 	return &Algorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, generationLimit, logger),
 		params:           params,
-		generations:      0,
+		generation:       0,
 		eliteSize:        int(float64(params.PopulationSize) * params.ElitePercentile),
 		matingPoolSize:   int(float64(params.PopulationSize) * params.MatingPoolPercentile),
 	}
@@ -36,15 +31,14 @@ func NewAlgorithm(problem problems.Problem, timeout time.Duration, params Params
 func (alg *Algorithm) Run() {
 	alg.InitPopulation()
 	fitness := 0.0
-	for time.Since(alg.StartTimestamp) < alg.Timeout {
+	for alg.generation < alg.GenerationLimit {
 		alg.Evolve()
-		alg.generations++
+		alg.generation++
 		bestFitness := alg.Solution.Fitness()
 		if fitness != bestFitness {
 			fitness = bestFitness
-			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
-				Generation:           alg.generations,
+			alg.LogStep(algos.GAStep{
+				Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation,
 			})
 		}
 	}

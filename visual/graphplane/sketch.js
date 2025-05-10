@@ -2,8 +2,9 @@ let problem;
 let solutions;
 let loaded = false;
 let done = false;
+let algorithm = "Fruchterman–Reingold"
 
-let generation = 0;
+let step = 0;
 
 function setup() {
   createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
@@ -11,7 +12,7 @@ function setup() {
   fill(255);
   stroke(255);
   textAlign(LEFT);
-  fetch("PlanarGraphPlane_NSGA2+Force.jsonl").then((response) => {
+  fetch("PlanarGraphPlane_FR-NSGA2-Adaptive.jsonl").then((response) => {
     response.text().then((data) => {
       const parsed = JSON.parse(
         "[" +
@@ -27,21 +28,24 @@ function setup() {
     });
   });
   frameRate(25);
-  // saveGif("gp-50-planar-Force->NSGA2.gif", 10);
+  // saveGif("gp-50-planar-FR-NSGA2.gif", 10);
 }
 
 function draw() {
   if (!loaded || done) return;
-  generation++;
-  if (solutions[generation] && solutions[generation].generation == null) {
-    generation += 8;
-    if (solutions[generation].solution.intersections == solutions[generation - 8].solution.intersections) generation += 32;
-  } else if (solutions[generation] && solutions[generation].generation != null) {
-    generation += 8;
+  
+  curIntersections = solutions[step].solution.intersections
+  for (let fd = 0; fd < 32; ++fd) {
+    step += (step < solutions.length - 1);
+    if (solutions[step].step < solutions[step - 1].step) algorithm = "NSGA2";
+
+    if (algorithm != "NSGA2" && solutions[step].solution.intersections < curIntersections && fd >= 8) break; 
+    if (algorithm == "NSGA2" && fd >= 4) break;
   }
-  if (generation >= solutions.length) {
+
+  if (step >= solutions.length - 1) {
     done = true;
-    generation = solutions.length - 1;
+    step = solutions.length - 1;
     console.log("Animation frames", frameCount);
   }
 
@@ -49,13 +53,12 @@ function draw() {
   background(18);
 
   noStroke();
-  if (solutions[generation].generation != null) text("Algorithm: NSGA2", 30, 50);
-  else text("Algorithm: Fruchterman–Reingold", 30, 50);
-  text("Intersections: " + solutions[generation].solution.intersections, 30, 30);
+  text("Algorithm: " + algorithm, 30, 50);
+  text("Intersections: " + solutions[step].solution.intersections, 30, 30);
 
   for (let edge of problem.graph.edges) {
-    let v1 = solutions[generation].solution.vertices[edge.from];
-    let v2 = solutions[generation].solution.vertices[edge.to];
+    let v1 = solutions[step].solution.vertices[edge.from];
+    let v2 = solutions[step].solution.vertices[edge.to];
     stroke(255);
     strokeWeight(2);
     line(
@@ -66,7 +69,7 @@ function draw() {
     );
   }
 
-  for (let vertex of solutions[generation].solution.vertices) {
+  for (const vertex of solutions[step].solution.vertices) {
     fill(255);
     const v = toScreenCoord(vertex.x, vertex.y);
     circle(v.x, v.y, 10);

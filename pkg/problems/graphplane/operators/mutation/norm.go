@@ -18,8 +18,8 @@ func Norm() problems.MutationFunc {
 		copy(m.VertPositions, s.VertPositions)
 
 		i := rand.IntN(len(m.VertPositions))
-		dx := rand.NormFloat64() * s.Width
-		dy := rand.NormFloat64() * s.Height
+		dx := rand.NormFloat64() * s.Width / 10
+		dy := rand.NormFloat64() * s.Height / 10
 		m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.Width)
 		m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.Height)
 

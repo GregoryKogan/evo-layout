@@ -23,9 +23,6 @@ type Task struct {
 }
 
 func main() {
-	// Define timeout for every algorithm run.
-	timeLimit := 1 * time.Minute
-
 	// Define task instances.
 	taskList := []Task{
 		// graphplane.NewGraphPlaneProblem(12, 0.35, 100.0, 100.0),
@@ -60,7 +57,7 @@ func main() {
 					MutationFunc:    task.MutationFunc,
 					CrossoverFunc:   task.CrossoverFunc,
 				}
-				alg := sga.NewAlgorithm(task.Problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(task.Problem, params, 100, logger)
 				alg.Run()
 			},
 		},
@@ -72,7 +69,7 @@ func main() {
 					MutationFunc:   task.MutationFunc,
 					CrossoverFunc:  task.CrossoverFunc,
 				}
-				alg := ssga.NewAlgorithm(task.Problem, timeLimit, params, logger)
+				alg := ssga.NewAlgorithm(task.Problem, params, 100, logger)
 				alg.Run()
 			},
 		},
@@ -81,12 +78,11 @@ func main() {
 			func(task Task, logger algos.ProgressLoggerProvider) {
 				// Configure NSGA-II parameters.
 				params := nsga2.NSGA2Params{
-					PopulationSize:  population,
-					GenerationLimit: 100,
-					MutationFunc:    task.MutationFunc,
-					CrossoverFunc:   task.CrossoverFunc,
+					PopulationSize: population,
+					MutationFunc:   task.MutationFunc,
+					CrossoverFunc:  task.CrossoverFunc,
 				}
-				alg := nsga2.NewAlgorithm(task.Problem, timeLimit, params, logger)
+				alg := nsga2.NewAlgorithm(task.Problem, params, 100, logger)
 				alg.Run()
 			},
 		},
@@ -94,14 +90,13 @@ func main() {
 			"SPEA2",
 			func(task Task, logger algos.ProgressLoggerProvider) {
 				params := spea2.Params{
-					PopulationSize:  population,
-					ArchiveSize:     population,
-					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
-					GenerationLimit: 100,
-					MutationFunc:    task.MutationFunc,
-					CrossoverFunc:   task.CrossoverFunc,
+					PopulationSize: population,
+					ArchiveSize:    population,
+					DensityKth:     int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
+					MutationFunc:   task.MutationFunc,
+					CrossoverFunc:  task.CrossoverFunc,
 				}
-				alg := spea2.NewAlgorithm(task.Problem, timeLimit, params, logger)
+				alg := spea2.NewAlgorithm(task.Problem, params, 100, logger)
 				alg.Run()
 			},
 		},
@@ -110,6 +105,9 @@ func main() {
 	// Create a directory for logs.
 	os.RemoveAll("logs")
 	os.Mkdir("logs", 0755)
+
+	// Define timeout for every algorithm run.
+	timeLimit := 1 * time.Minute
 
 	// Loop over every problem and algorithm.
 	for _, task := range taskList {

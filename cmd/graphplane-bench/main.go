@@ -51,9 +51,6 @@ import (
 // Force 2000 iters -> NSGA2 1 min - 8 intersections (54 -> 8)
 
 func main() {
-	// Define timeout for every algorithm run.
-	timeLimit := 5 * time.Minute
-
 	problem := graphplane.NewPlanarGraphPlaneProblem(50)
 	population := 500
 
@@ -72,7 +69,7 @@ func main() {
 					MutationFunc:         mutation.TensionVector(0.01),
 					CrossoverFunc:        crossover.Uniform(0.45),
 				}
-				alg := sga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := sga.NewAlgorithm(problem, params, math.MaxInt, logger)
 				alg.Run()
 			},
 		},
@@ -84,7 +81,7 @@ func main() {
 					MutationFunc:   mutation.TensionVector(0.01),
 					CrossoverFunc:  crossover.Uniform(0.45),
 				}
-				alg := ssga.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := ssga.NewAlgorithm(problem, params, math.MaxInt, logger)
 				alg.Run()
 			},
 		},
@@ -93,12 +90,11 @@ func main() {
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				// Configure NSGA-II parameters.
 				params := nsga2.NSGA2Params{
-					PopulationSize:  population,
-					GenerationLimit: math.MaxInt,
-					MutationFunc:    mutation.TensionVector(0.01),
-					CrossoverFunc:   crossover.Uniform(0.45),
+					PopulationSize: population,
+					MutationFunc:   mutation.TensionVector(0.01),
+					CrossoverFunc:  crossover.Uniform(0.45),
 				}
-				alg := nsga2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := nsga2.NewAlgorithm(problem, params, math.MaxInt, logger)
 				alg.Run()
 			},
 		},
@@ -106,14 +102,13 @@ func main() {
 			"SPEA2",
 			func(problem problems.Problem, logger algos.ProgressLoggerProvider) {
 				params := spea2.Params{
-					PopulationSize:  population,
-					ArchiveSize:     population,
-					DensityKth:      int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
-					GenerationLimit: math.MaxInt,
-					MutationFunc:    mutation.TensionVector(0.01),
-					CrossoverFunc:   crossover.Uniform(0.45),
+					PopulationSize: population,
+					ArchiveSize:    population,
+					DensityKth:     int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
+					MutationFunc:   mutation.TensionVector(0.01),
+					CrossoverFunc:  crossover.Uniform(0.45),
 				}
-				alg := spea2.NewAlgorithm(problem, timeLimit, params, logger)
+				alg := spea2.NewAlgorithm(problem, params, math.MaxInt, logger)
 				alg.Run()
 			},
 		},
@@ -121,6 +116,9 @@ func main() {
 	// Create a directory for logs.
 	os.RemoveAll("logs")
 	os.Mkdir("logs", 0755)
+
+	// Define timeout for every algorithm run.
+	timeLimit := 5 * time.Minute
 
 	// Loop over ever algorithm.
 	for _, alg := range algorithmsList {

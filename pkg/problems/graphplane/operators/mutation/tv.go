@@ -18,7 +18,8 @@ func TensionVector(epsilon float64) problems.MutationFunc {
 		m.VertPositions = make([]graphplane.VertexPos, len(s.VertPositions))
 		copy(m.VertPositions, s.VertPositions)
 
-		u := rand.IntN(len(m.VertPositions))
+		n := s.Graph.NumVertices
+		u := rand.IntN(n)
 
 		var neighbors []int
 		for _, e := range m.Graph.Edges {
@@ -31,23 +32,46 @@ func TensionVector(epsilon float64) problems.MutationFunc {
 
 		disp := graphplane.VertexPos{X: 0, Y: 0}
 
+		k := math.Sqrt((s.Height*s.Width)/float64(n)) * 0.5
+
+		// repulsive forces
+		for v := range n {
+			if u == v {
+				continue
+			}
+			dx := s.VertPositions[u].X - s.VertPositions[v].X
+			dy := s.VertPositions[u].Y - s.VertPositions[v].Y
+			d := math.Hypot(dx, dy) + 1e-9
+			force := (k * k) / (d * d)
+			disp.X += dx * force
+			disp.Y += dy * force
+		}
+
 		// attractive forces along edges
-		springK := math.Min(s.Width, s.Height) / math.Sqrt(float64(s.Graph.NumVertices))
 		for _, v := range neighbors {
 			dx := m.VertPositions[u].X - m.VertPositions[v].X
 			dy := m.VertPositions[u].Y - m.VertPositions[v].Y
 			d := math.Hypot(dx, dy) + 1e-9
-			force := (d * d) / springK
+			force := (d * d) / k
 			dxNorm := dx / d
 			dyNorm := dy / d
 			disp.X -= dxNorm * force
 			disp.Y -= dyNorm * force
 		}
 
-		px := m.VertPositions[u].X + disp.X*epsilon
-		py := m.VertPositions[u].Y + disp.Y*epsilon
-		m.VertPositions[u].X = clamp(px, 0, s.Width)
-		m.VertPositions[u].Y = clamp(py, 0, s.Height)
+		dx := disp.X
+		dy := disp.Y
+		displacement := math.Hypot(dx, dy)
+
+		temp := math.Min(s.Height, s.Width) * epsilon
+		if displacement > 0 {
+			scale := math.Min(displacement, temp) / displacement
+			dx *= scale
+			dy *= scale
+		}
+
+		m.VertPositions[u].X = clamp(m.VertPositions[u].X+dx, 0, s.Width)
+		m.VertPositions[u].Y = clamp(m.VertPositions[u].Y+dy, 0, s.Height)
 
 		return m
 	}

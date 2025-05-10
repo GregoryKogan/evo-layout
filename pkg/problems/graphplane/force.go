@@ -9,116 +9,126 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
 )
 
-// ForceDirectedLayer applies a Fruchterman–Reingold layout to the Graph.
-type ForceDirectedLayer struct {
+type FDSParams struct {
+	Steps int
+	Temp  float64
+	K     float64
+}
+
+// ForceDirectedSolver applies a Fruchterman–Reingold layout to the Graph.
+type ForceDirectedSolver struct {
 	*GraphPlaneSolution
 	logger      algos.ProgressLoggerProvider
-	Iterations  int     // number of simulation steps
-	SpringK     float64 // ideal edge length
-	InitialTemp float64 // starting temperature
+	adj         [][]int
+	params      FDSParams
+	k           float64
+	temp        float64
+	coolingStep float64
 }
 
-type ForceLayerParams struct {
-	Iterations  int
-	InitialTemp float64
-	SpringK     float64
-}
-
-type Step struct {
-	algos.GeneticAlgorithmStep
-	Iteration int `json:"iteration"`
-}
-
-// NewForceDirectedProblem constructs a force-directed solver.
-func NewForceDirectedLayer(initialSolution problems.Solution, params ForceLayerParams, logger algos.ProgressLoggerProvider) ForceDirectedLayer {
+func NewForceDirectedSolver(initialSolution problems.Solution, params FDSParams, logger algos.ProgressLoggerProvider) ForceDirectedSolver {
 	gpSol, ok := initialSolution.(*GraphPlaneSolution)
 	if !ok {
 		fmt.Printf("%#+v\n", initialSolution)
 		panic("type error")
 	}
-	return ForceDirectedLayer{
+	return ForceDirectedSolver{
 		GraphPlaneSolution: gpSol,
 		logger:             logger,
-		Iterations:         params.Iterations,
-		SpringK:            (math.Min(gpSol.Width, gpSol.Height) / math.Sqrt(float64(gpSol.Graph.NumVertices))) * params.SpringK,
-		InitialTemp:        params.InitialTemp,
+		params:             params,
 	}
 }
 
 // Solve runs the spring-electrical simulation and returns a solution.
-func (p *ForceDirectedLayer) Solve() problems.AlgorithmicSolution {
+func (s *ForceDirectedSolver) Solve() problems.AlgorithmicSolution {
 	start := time.Now()
-	n := p.Graph.NumVertices
+
+	n := s.Graph.NumVertices
+	s.k = math.Sqrt((s.Height*s.Width)/float64(n)) * s.params.K
+	s.temp = math.Min(s.Height, s.Width) * s.params.Temp
+	s.coolingStep = s.temp / float64(s.params.Steps)
 
 	// precompute adjacency lists
-	adj := make([][]int, n)
-	for _, e := range p.Graph.Edges {
-		adj[e.From] = append(adj[e.From], e.To)
-		adj[e.To] = append(adj[e.To], e.From)
+	s.adj = make([][]int, n)
+	for _, e := range s.Graph.Edges {
+		s.adj[e.From] = append(s.adj[e.From], e.To)
+		s.adj[e.To] = append(s.adj[e.To], e.From)
 	}
 
-	// temperature schedule
-	temp := p.InitialTemp
-	deltaTemp := p.InitialTemp / float64(p.Iterations)
+	for step := range s.params.Steps {
+		s.Iterate()
 
-	// simulation loop
-	for iter := range p.Iterations {
-		// displacement vectors
-		disp := make([]VertexPos, n)
+		s.CachedObjectives = nil
+		s.Fitness()
 
-		// repulsive forces between all pairs
-		for i := range n {
-			for j := i + 1; j < n; j++ {
-				dx := p.VertPositions[i].X - p.VertPositions[j].X
-				dy := p.VertPositions[i].Y - p.VertPositions[j].Y
-				d := math.Hypot(dx, dy) + 1e-9
-				force := (p.SpringK * p.SpringK) / d
-				dxNorm := dx / d
-				dyNorm := dy / d
-				disp[i].X += dxNorm * force
-				disp[i].Y += dyNorm * force
-				disp[j].X -= dxNorm * force
-				disp[j].Y -= dyNorm * force
-			}
+		if s.logger != nil {
+			s.logger.LogStep(algos.GAStep{Elapsed: time.Since(start), Solution: s.GraphPlaneSolution, Step: step + 1})
 		}
-
-		// attractive forces along edges
-		for u, neigh := range adj {
-			for _, v := range neigh {
-				dx := p.VertPositions[u].X - p.VertPositions[v].X
-				dy := p.VertPositions[u].Y - p.VertPositions[v].Y
-				d := math.Hypot(dx, dy) + 1e-9
-				force := (d * d) / p.SpringK
-				dxNorm := dx / d
-				dyNorm := dy / d
-				disp[u].X -= dxNorm * force
-				disp[u].Y -= dyNorm * force
-				// symmetric for v
-				disp[v].X += dxNorm * force
-				disp[v].Y += dyNorm * force
-			}
-		}
-
-		// limit displacement by temperature and update
-		for i := range n {
-			dMag := math.Hypot(disp[i].X, disp[i].Y)
-			if dMag > 0 {
-				scale := math.Min(dMag, temp) / dMag
-				px := p.VertPositions[i].X + disp[i].X*scale
-				py := p.VertPositions[i].Y + disp[i].Y*scale
-				// keep within bounds
-				p.VertPositions[i].X = math.Min(p.Width, math.Max(0, px))
-				p.VertPositions[i].Y = math.Min(p.Height, math.Max(0, py))
-			}
-		}
-
-		// cool down
-		temp -= deltaTemp
-
-		p.CachedObjectives = nil
-		p.Objectives()
-		p.logger.LogStep(Step{algos.GeneticAlgorithmStep{Elapsed: time.Since(start), Solution: p.GraphPlaneSolution}, iter})
 	}
 
-	return problems.AlgorithmicSolution{Solution: p.GraphPlaneSolution, TimeTook: time.Since(start)}
+	return problems.AlgorithmicSolution{Solution: s.GraphPlaneSolution, TimeTook: time.Since(start)}
+}
+
+func (s *ForceDirectedSolver) Iterate() {
+	n := s.Graph.NumVertices
+
+	// displacement vectors
+	disp := make([]VertexPos, n)
+
+	// repulsive forces between all pairs
+	for i := range n {
+		for j := i + 1; j < n; j++ {
+			dx := s.VertPositions[i].X - s.VertPositions[j].X
+			dy := s.VertPositions[i].Y - s.VertPositions[j].Y
+			d := math.Hypot(dx, dy) + 1e-9
+			force := (s.k * s.k) / (d * d)
+			disp[i].X += dx * force
+			disp[i].Y += dy * force
+			disp[j].X -= dx * force
+			disp[j].Y -= dy * force
+		}
+	}
+
+	// attractive forces along edges
+	for u, neigh := range s.adj {
+		for _, v := range neigh {
+			dx := s.VertPositions[u].X - s.VertPositions[v].X
+			dy := s.VertPositions[u].Y - s.VertPositions[v].Y
+			d := math.Hypot(dx, dy) + 1e-9
+			force := (d * d) / s.k
+			dxNorm := dx / d
+			dyNorm := dy / d
+			disp[u].X -= dxNorm * force
+			disp[u].Y -= dyNorm * force
+			disp[v].X += dxNorm * force
+			disp[v].Y += dyNorm * force
+		}
+	}
+
+	for i := range n {
+		dx := disp[i].X
+		dy := disp[i].Y
+		disp := math.Hypot(dx, dy)
+
+		if disp > 0 {
+			scale := math.Min(disp, s.temp) / disp
+			dx *= scale
+			dy *= scale
+		}
+
+		s.VertPositions[i].X = clamp(s.VertPositions[i].X+dx, 0, s.Width)
+		s.VertPositions[i].Y = clamp(s.VertPositions[i].Y+dy, 0, s.Height)
+	}
+
+	s.temp -= s.coolingStep
+}
+
+func clamp(val, min, max float64) float64 {
+	if val < min {
+		return min
+	}
+	if val > max {
+		return max
+	}
+	return val
 }

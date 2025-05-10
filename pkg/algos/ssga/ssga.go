@@ -12,41 +12,33 @@ import (
 type Algorithm struct {
 	algos.GeneticAlgorithm
 	params     Params
-	iterations int
+	generation int
 	population []problems.Solution
-}
-
-type Step struct {
-	algos.GeneticAlgorithmStep
-	Iteration int `json:"iteration"`
 }
 
 func NewAlgorithm(
 	problem problems.Problem,
-	timeout time.Duration,
 	params Params,
+	generationLimit int,
 	logger algos.ProgressLoggerProvider,
 ) *Algorithm {
 	return &Algorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, generationLimit, logger),
 		params:           params,
-		iterations:       0,
+		generation:       0,
 	}
 }
 
 func (alg *Algorithm) Run() {
 	alg.InitPopulation()
 	fitness := 0.0
-	for time.Since(alg.StartTimestamp) < alg.Timeout {
+	for alg.generation < alg.GenerationLimit {
 		alg.Evolve()
-		alg.iterations++
+		alg.generation++
 		bestFitness := alg.Solution.Fitness()
 		if fitness != bestFitness {
 			fitness = bestFitness
-			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution},
-				Iteration:            alg.iterations,
-			})
+			alg.LogStep(algos.GAStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation})
 		}
 	}
 }

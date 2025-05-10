@@ -30,20 +30,14 @@ type Algorithm struct {
 	generation             int
 }
 
-// Step is emitted each generation for logging Pareto front.
-type Step struct {
-	algos.GeneticAlgorithmStep
-	Generation int `json:"generation"`
-}
-
 // NewAlgorithm constructs a SPEA2Algorithm.
 func NewAlgorithm(
 	problem problems.Problem,
-	timeout time.Duration,
 	params Params,
+	generationLimit int,
 	logger algos.ProgressLoggerProvider,
 ) *Algorithm {
-	ga := algos.NewGeneticAlgorithm(problem, timeout, logger)
+	ga := algos.NewGeneticAlgorithm(problem, generationLimit, logger)
 	return &Algorithm{
 		GeneticAlgorithm: *ga,
 		params:           params,
@@ -56,7 +50,7 @@ func (alg *Algorithm) Run() {
 	alg.initPopulation()
 	alg.archive = nil
 
-	for time.Since(alg.StartTimestamp) < alg.Timeout && alg.generation < alg.params.GenerationLimit {
+	for alg.generation < alg.GenerationLimit {
 		alg.generation++
 
 		combined := slices.Concat(alg.population, alg.archive)
@@ -117,7 +111,7 @@ func (alg *Algorithm) updateArchive(combined []Individual) {
 		nd = append(nd, selectDominated(combined, alg.params.ArchiveSize-len(nd))...)
 	}
 	// 3) truncate if too many
-	alg.archive = truncateToSize(nd, alg.params.ArchiveSize, alg.params.DensityKth)
+	alg.archive = truncateToSize(nd, alg.params.ArchiveSize)
 }
 
 // logParetoFront logs the current archive’s Pareto front.
@@ -134,13 +128,11 @@ func (alg *Algorithm) logParetoFront() {
 		}
 	}
 	if improved {
-		alg.LogStep(Step{
-			GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
-				Elapsed:     time.Since(alg.StartTimestamp),
-				ParetoFront: pareto,
-				Solution:    alg.Solution,
-			},
-			Generation: alg.generation,
+		alg.LogStep(algos.GAStep{
+			Elapsed:     time.Since(alg.StartTimestamp),
+			ParetoFront: pareto,
+			Solution:    alg.Solution,
+			Step:        alg.generation,
 		})
 	}
 }
@@ -193,7 +185,7 @@ func selectDominated(all []Individual, count int) []Individual {
 }
 
 // truncateToSize iteratively removes the most crowded individual until size is met.
-func truncateToSize(cands []Individual, size, k int) []Individual {
+func truncateToSize(cands []Individual, size int) []Individual {
 	archive := slices.Clone(cands)
 	for len(archive) > size {
 		idx := mostCrowdedIndex(archive)

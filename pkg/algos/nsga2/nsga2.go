@@ -25,15 +25,10 @@ type Algorithm struct {
 	population             []Individual
 }
 
-type Step struct {
-	algos.GeneticAlgorithmStep
-	Generation int `json:"generation"`
-}
-
 // NewAlgorithm creates a new NSGA-II instance.
-func NewAlgorithm(problem problems.Problem, timeout time.Duration, params NSGA2Params, logger algos.ProgressLoggerProvider) *Algorithm {
+func NewAlgorithm(problem problems.Problem, params NSGA2Params, generationLimit int, logger algos.ProgressLoggerProvider) *Algorithm {
 	return &Algorithm{
-		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, timeout, logger),
+		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, generationLimit, logger),
 		params:           params,
 		generation:       0,
 	}
@@ -53,7 +48,7 @@ func (alg *Algorithm) Run() {
 	if len(alg.population) < alg.params.PopulationSize {
 		alg.initPopulation()
 	}
-	for time.Since(alg.StartTimestamp) < alg.Timeout && alg.generation < alg.params.GenerationLimit {
+	for alg.generation < alg.GenerationLimit {
 		alg.generation++
 
 		// Generate offspring population by selection, crossover and mutation.
@@ -89,15 +84,18 @@ func (alg *Algorithm) Run() {
 				}
 			}
 
-			alg.LogStep(Step{
-				GeneticAlgorithmStep: algos.GeneticAlgorithmStep{
+			if !alg.params.Verbose {
+				pareto = nil
+			}
+
+			if alg.ProgressLoggerProvider != nil {
+				alg.LogStep(algos.GAStep{
 					Elapsed:     time.Since(alg.StartTimestamp),
+					Step:        alg.generation,
 					ParetoFront: pareto,
 					Solution:    alg.Solution,
-				},
-				Generation: alg.generation,
-			})
-
+				})
+			}
 		}
 	}
 }
