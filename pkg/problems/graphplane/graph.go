@@ -19,12 +19,10 @@ type Edge struct {
 	To   int `json:"to"`
 }
 
-func NewRandomGraph(numVertices int, edgeFill float64) *Graph {
-	if edgeFill < 0 || edgeFill > 1 {
-		panic("edgeFill must be in the range [0, 1]")
+func NewRandomGraph(numVertices, numEdges int) *Graph {
+	if numEdges < 0 || numEdges > numVertices*(numVertices-1)/2 {
+		panic("edgeNum is out of valid range")
 	}
-	maxEdges := numVertices * (numVertices - 1) / 2
-	numEdges := int(edgeFill * float64(maxEdges))
 
 	edges := make([]Edge, 0, numEdges)
 	edgeSet := make(map[string]bool)

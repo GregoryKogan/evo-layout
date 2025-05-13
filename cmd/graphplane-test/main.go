@@ -13,13 +13,6 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators/mutation"
 )
 
-type Test struct {
-	Repeat      int
-	Name        string
-	Population  int
-	Generations int
-}
-
 // 100 vertexes planar
 
 // Uniform - 105.47
@@ -28,7 +21,7 @@ type Test struct {
 // Percentage - 68.03
 // TensionVector - 110.30
 // FixedUniform - 110.63
-// FixedNorm - 36.97
+// FixedNorm - 36.97 - Best
 // FixedPercentage - 67.40
 // FixedTensionVector - 85.87
 
@@ -48,30 +41,68 @@ type Test struct {
 // Pop:500-Gen:500 - 9.60
 // Pop:1000-Gen:500 - 13.60
 
+// 100 vertexes
+
+// Uniform - 1615.60
+// Norm - 1448.58
+// Mirror - 2146.62
+// Percentage - 1414.20 - Best
+// TensionVector - 1909.54
+// FixedUniform - 1613.36
+// FixedNorm - 1449.88
+// FixedPercentage - 1445.82
+// FixedTensionVector - 2044.44
+
+// 50 vertexes
+
+// Pop:50-Gen:100 - 271.50
+// Pop:50-Gen:250 - 260.07
+// Pop:50-Gen:500 - 252.40
+// Pop:100-Gen:100 - 272.03
+// Pop:100-Gen:250 - 249.97
+// Pop:100-Gen:500 - 247.73
+// Pop:250-Gen:100 - 256.87
+// Pop:250-Gen:250 - 243.77
+// Pop:250-Gen:500 - 244.23 - Best
+// Pop:500-Gen:100 - 256.63
+// Pop:500-Gen:250 - 243.37
+// Pop:500-Gen:500 - 238.67
+// Pop:1000-Gen:100 - 251.37
+// Pop:1000-Gen:250 - 239.90
+
+// Planar graph avg edges count
+// 50v ~ 137 edges
+// 100v ~ 285 edges
+// 200v ~ 583 edges
+
+type Test struct {
+	Repeat int
+	Name   string
+}
+
 func main() {
 	tests := []Test{
-		{Repeat: 1, Name: "FR-NSGA2-Adaptive"},
+		{Repeat: 1, Name: "FR-NSGA2"},
 	}
 
 	for _, test := range tests {
 		total := 0.0
 		for range test.Repeat {
-			problem := graphplane.NewPlanarGraphPlaneProblem(50)
+			problem := graphplane.NewGraphPlaneProblem(100, 285)
 			logger := initLogger(problem, test.Name)
 
-			forceLayer := graphplane.NewForceDirectedSolver(problem.RandomSolution(), graphplane.FDSParams{Steps: 2000, Temp: 0.005, K: 0.5}, logger)
+			forceLayer := graphplane.NewForceDirectedSolver(problem.RandomSolution(), graphplane.FDSParams{Steps: 2000, Temp: 0.005, K: 1.0}, logger)
 			algoSolution := forceLayer.Solve()
 
 			gaParams := nsga2.NSGA2Params{
 				PopulationSize: 250,
-				MutationFunc:   mutation.AdaptiveNorm(3),
+				MutationFunc:   mutation.Percentage(),
 				CrossoverFunc:  crossover.Uniform(0.45),
 			}
 			alg := nsga2.NewAlgorithm(problem, gaParams, 500, logger)
 			alg.Seed(algoSolution.Solution)
 			alg.Run()
 			gpSol, _ := alg.Solution.(*graphplane.GraphPlaneSolution)
-			fmt.Println(gpSol.Intersections)
 			total += float64(gpSol.Intersections)
 		}
 		fmt.Printf("%s - %.2f\n", test.Name, total/float64(test.Repeat))

@@ -11,8 +11,8 @@ type GraphPlaneProblem struct {
 	Height float64 `json:"height"`
 }
 
-func NewGraphPlaneProblem(numVertices int, edgeFill float64) problems.Problem {
-	return &GraphPlaneProblem{"GraphPlane", NewRandomGraph(numVertices, edgeFill), 1.0, 1.0}
+func NewGraphPlaneProblem(numVertices, numEdges int) problems.Problem {
+	return &GraphPlaneProblem{"GraphPlane", NewRandomGraph(numVertices, numEdges), 1.0, 1.0}
 }
 
 func NewPlanarGraphPlaneProblem(numVertices int) problems.Problem {
