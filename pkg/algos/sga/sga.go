@@ -70,8 +70,7 @@ func (alg *Algorithm) Evolve() {
 		parent1 := alg.population[p1Ind]
 		parent2 := alg.population[p2Ind]
 
-		// children := alg.params.CrossoverFunc(parent1, parent2)
-		children := []problems.Solution{parent1, parent2}
+		children := alg.params.CrossoverFunc(parent1, parent2)
 
 		for _, child := range children {
 			child = alg.params.MutationFunc(child)
