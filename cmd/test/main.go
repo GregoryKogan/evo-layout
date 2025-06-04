@@ -1,143 +1,205 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"math"
-	"os"
-	"path/filepath"
-	"time"
+	"strings"
 
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/nsga2"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/sga"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/spea2"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/algos/ssga"
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems"
-	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/zdt"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators/crossover"
+	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane/operators/mutation"
 )
 
-type Task struct {
-	Problem       problems.Problem
-	MutationFunc  problems.MutationFunc
-	CrossoverFunc problems.CrossoverFunc
+type Test struct {
+	Repeat   int
+	Name     string
+	Planar   bool
+	Vertexes int
 }
 
 func main() {
-	// Define task instances.
-	taskList := []Task{
-		// graphplane.NewGraphPlaneProblem(12, 0.35, 100.0, 100.0),
-		// knapsack.NewKnapsackProblem(knapsack.KnapsackProblemParams{
-		// 	Dimensions:         10,
-		// 	ItemsNum:           1000,
-		// 	InitialMaxValue:    100,
-		// 	InitialMaxResource: 100,
-		// 	Constraints:        []int{30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000},
-		// }),
-		// tsp.NewTSProblem(tsp.TSProblemParameters{CitiesNum: 100}),
-		{zdt.NewZDT1Problem(30), zdt.ZDT1MutationFunc(), zdt.ZDT1CrossoverFunc()}, // 30-dimensional ZDT1
-		{zdt.NewZDT2Problem(30), zdt.ZDT2MutationFunc(), zdt.ZDT2CrossoverFunc()},
-		{zdt.NewZDT3Problem(30), zdt.ZDT3MutationFunc(), zdt.ZDT3CrossoverFunc()},
-		{zdt.NewZDT4Problem(30), zdt.ZDT4MutationFunc(), zdt.ZDT4CrossoverFunc()},
-		{zdt.NewZDT6Problem(30), zdt.ZDT6MutationFunc(), zdt.ZDT6CrossoverFunc()},
+	tests := []Test{
+		{Repeat: 30, Name: "SSGA-FR P25", Planar: true, Vertexes: 25},
+		{Repeat: 30, Name: "FR-NSGA2 P25", Planar: true, Vertexes: 25},
+		{Repeat: 30, Name: "FR-SSGA-NSGA2 P25", Planar: true, Vertexes: 25},
+
+		{Repeat: 9, Name: "SSGA-FR A25", Planar: false, Vertexes: 25},
+		{Repeat: 9, Name: "FR-NSGA2 A25", Planar: false, Vertexes: 25},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 A25", Planar: false, Vertexes: 25},
+
+		{Repeat: 30, Name: "SSGA-FR P50", Planar: true, Vertexes: 50},
+		{Repeat: 30, Name: "FR-NSGA2 P50", Planar: true, Vertexes: 50},
+		{Repeat: 30, Name: "FR-SSGA-NSGA2 P50", Planar: true, Vertexes: 50},
+
+		{Repeat: 9, Name: "SSGA-FR A50", Planar: false, Vertexes: 50},
+		{Repeat: 9, Name: "FR-NSGA2 A50", Planar: false, Vertexes: 50},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 A50", Planar: false, Vertexes: 50},
+
+		{Repeat: 9, Name: "SSGA-FR P100", Planar: true, Vertexes: 100},
+		{Repeat: 9, Name: "FR-NSGA2 P100", Planar: true, Vertexes: 100},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 P100", Planar: true, Vertexes: 100},
+
+		{Repeat: 9, Name: "SSGA-FR A100", Planar: false, Vertexes: 100},
+		{Repeat: 9, Name: "FR-NSGA2 A100", Planar: false, Vertexes: 100},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 A100", Planar: false, Vertexes: 100},
+
+		{Repeat: 9, Name: "SSGA-FR P200", Planar: true, Vertexes: 200},
+		{Repeat: 9, Name: "FR-NSGA2 P200", Planar: true, Vertexes: 200},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 P200", Planar: true, Vertexes: 200},
+
+		{Repeat: 9, Name: "SSGA-FR A200", Planar: false, Vertexes: 200},
+		{Repeat: 9, Name: "FR-NSGA2 A200", Planar: false, Vertexes: 200},
+		{Repeat: 9, Name: "FR-SSGA-NSGA2 A200", Planar: false, Vertexes: 200},
 	}
 
-	population := 100
+	// initLogsDir()
+	for _, test := range tests {
+		totalIntersections := 0
+		zeroCounter := 0
+		totalFitness := 0.0
+		for range test.Repeat {
+			var problem problems.Problem
+			if test.Planar {
+				problem = graphplane.NewPlanarGraphPlaneProblem(test.Vertexes)
+			} else {
+				problem = graphplane.NewGraphPlaneProblem(test.Vertexes, test.Vertexes*3)
+			}
 
-	// Define algorithm constructors.
-	algorithmsList := []struct {
-		name    string
-		runFunc func(task Task, logger algos.ProgressLoggerProvider)
-	}{
-		{
-			"SGA",
-			func(task Task, logger algos.ProgressLoggerProvider) {
-				params := sga.Params{
-					PopulationSize:  population,
-					ElitePercentile: 0.1,
-					MutationFunc:    task.MutationFunc,
-					CrossoverFunc:   task.CrossoverFunc,
-				}
-				alg := sga.NewAlgorithm(task.Problem, params, 100, logger)
-				alg.Run()
-			},
-		},
-		{
-			"SSGA",
-			func(task Task, logger algos.ProgressLoggerProvider) {
-				params := ssga.Params{
-					PopulationSize: population,
-					MutationFunc:   task.MutationFunc,
-					CrossoverFunc:  task.CrossoverFunc,
-				}
-				alg := ssga.NewAlgorithm(task.Problem, params, 100, logger)
-				alg.Run()
-			},
-		},
-		{
-			"NSGA2",
-			func(task Task, logger algos.ProgressLoggerProvider) {
-				// Configure NSGA-II parameters.
-				params := nsga2.NSGA2Params{
-					PopulationSize: population,
-					MutationFunc:   task.MutationFunc,
-					CrossoverFunc:  task.CrossoverFunc,
-				}
-				alg := nsga2.NewAlgorithm(task.Problem, params, 100, logger)
-				alg.Run()
-			},
-		},
-		{
-			"SPEA2",
-			func(task Task, logger algos.ProgressLoggerProvider) {
-				params := spea2.Params{
-					PopulationSize: population,
-					ArchiveSize:    population,
-					DensityKth:     int(math.Sqrt(float64(population + population))), // typical choice: sqrt(population+archive)
-					MutationFunc:   task.MutationFunc,
-					CrossoverFunc:  task.CrossoverFunc,
-				}
-				alg := spea2.NewAlgorithm(task.Problem, params, 100, logger)
-				alg.Run()
-			},
-		},
-	}
+			var intersections int
+			var fitness float64
+			algoName := strings.Split(test.Name, " ")[0]
+			if algoName == "SSGA-FR" {
+				intersections, fitness = ssga_fr(problem, test.Planar, test.Vertexes)
+			} else if algoName == "FR-NSGA2" {
+				intersections, fitness = fr_nsga2(problem, test.Planar, test.Vertexes)
+			} else if algoName == "FR-SSGA-NSGA2" {
+				intersections, fitness = fr_ssga_nsga2(problem, test.Planar, test.Vertexes)
+			}
 
-	// Create a directory for logs.
-	os.RemoveAll("logs")
-	os.Mkdir("logs", 0755)
-
-	// Define timeout for every algorithm run.
-	timeLimit := 1 * time.Minute
-
-	// Loop over every problem and algorithm.
-	for _, task := range taskList {
-		for _, alg := range algorithmsList {
-			// Create a dedicated log file for this (problem, algorithm) pair.
-			logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", task.Problem.Name(), alg.name))
-			progressLogger := algos.NewProgressLogger(logPath)
-			progressLogger.InitLogging()
-			progressLogger.LogProblem(task.Problem)
-
-			fmt.Printf("Testing %s on %s\n", alg.name, task.Problem.Name())
-			runAlgorithm(alg.name, task.Problem.Name(), func() {
-				alg.runFunc(task, progressLogger)
-			}, timeLimit)
+			totalFitness += fitness
+			totalIntersections += intersections
+			if intersections == 0 {
+				zeroCounter++
+			}
 		}
+		fmt.Printf(
+			"%s - Avg I: %.2f, Avg F: %.2f, 0-rate: %.2f%%\n",
+			test.Name,
+			float64(totalIntersections)/float64(test.Repeat),
+			totalFitness/float64(test.Repeat),
+			float64(zeroCounter)/float64(test.Repeat)*100.0,
+		)
 	}
 }
 
-// runAlgorithm wraps an algorithm run in a goroutine and enforces a timeout.
-func runAlgorithm(algName string, problemName string, algRun func(), timeout time.Duration) {
-	fmt.Printf("Running %s on %s with timeout %v\n", algName, problemName, timeout)
-	done := make(chan bool)
-	go func() {
-		algRun()
-		done <- true
-	}()
-	select {
-	case <-done:
-		fmt.Printf("%s on %s completed.\n", algName, problemName)
-	case <-time.After(timeout):
-		fmt.Printf("%s on %s timed out after %v.\n", algName, problemName, timeout)
+// func initLogger(problem problems.Problem, method string) algos.ProgressLoggerProvider {
+//   logPath := filepath.Join("logs", fmt.Sprintf("%s_%s.jsonl", problem.Name(), method))
+//   logger := algos.NewProgressLogger(logPath)
+//   logger.InitLogging()
+//   logger.LogProblem(problem)
+//   return logger
+// }
+
+// func initLogsDir() {
+//   os.RemoveAll("logs")
+//   os.Mkdir("logs", 0755)
+// }
+
+func ssga_fr(p problems.Problem, planar bool, vertexes int) (int, float64) {
+	gaParams := ssga.Params{
+		PopulationSize: 500,
+		CrossoverFunc:  crossover.Uniform(0.4),
+		MutationFunc:   mutation.ConservativeNorm(0.1),
 	}
+	ga := ssga.NewAlgorithm(p, gaParams, 100000, nil)
+	ga.Run(context.Background())
+
+	fdsParams := graphplane.FDSParams{
+		Steps: 2000,
+		Temp:  0.005,
+		K:     getKCoefficient(planar, vertexes),
+	}
+	fdSolver := graphplane.NewForceDirectedSolver(ga.GetSolution(), fdsParams, nil)
+	fdSol, _ := fdSolver.Solve().Solution.(*graphplane.GraphPlaneSolution)
+	return fdSol.CountIntersections(), fdSol.Fitness()
+}
+
+func fr_nsga2(p problems.Problem, planar bool, vertexes int) (int, float64) {
+	fdsParams := graphplane.FDSParams{
+		Steps: 2000,
+		Temp:  0.005,
+		K:     getKCoefficient(planar, vertexes),
+	}
+	fdSolver := graphplane.NewForceDirectedSolver(p.RandomSolution(), fdsParams, nil)
+	fdSol := fdSolver.Solve()
+
+	gaParams := nsga2.Params{
+		PopulationSize: 500,
+		CrossoverFunc:  crossover.Uniform(0.4),
+		MutationFunc:   mutation.ConservativeNorm(0.1),
+	}
+	ga := nsga2.NewAlgorithm(p, gaParams, 350, nil)
+	ga.Seed(fdSol.Solution)
+	ga.Run(context.Background())
+	gaSol, _ := ga.GetSolution().(*graphplane.GraphPlaneSolution)
+	return gaSol.CountIntersections(), gaSol.Fitness()
+}
+
+func fr_ssga_nsga2(p problems.Problem, planar bool, vertexes int) (int, float64) {
+	fdsParams := graphplane.FDSParams{
+		Steps: 2000,
+		Temp:  0.005,
+		K:     getKCoefficient(planar, vertexes),
+	}
+	fdSolver := graphplane.NewForceDirectedSolver(p.RandomSolution(), fdsParams, nil)
+	fdSol := fdSolver.Solve()
+
+	ssgaParams := ssga.Params{
+		PopulationSize: 500,
+		CrossoverFunc:  crossover.Uniform(0.4),
+		MutationFunc:   mutation.ConservativeNorm(0.1),
+	}
+	ss := ssga.NewAlgorithm(p, ssgaParams, 70000, nil)
+	ss.Seed(fdSol.Solution)
+	ss.Run(context.Background())
+
+	nsga2Params := nsga2.Params{
+		PopulationSize: 500,
+		CrossoverFunc:  crossover.Uniform(0.4),
+		MutationFunc:   mutation.ConservativeNorm(0.1),
+	}
+	ns2 := nsga2.NewAlgorithm(p, nsga2Params, 250, nil)
+	ns2.SetPopulation(ss.GetPopulation())
+	ns2.Run(context.Background())
+	ns2Sol, _ := ns2.GetSolution().(*graphplane.GraphPlaneSolution)
+	return ns2Sol.CountIntersections(), ns2Sol.Fitness()
+}
+
+func getKCoefficient(planar bool, vertexes int) float64 {
+	if planar {
+		if vertexes == 25 {
+			return 0.7
+		} else if vertexes == 50 {
+			return 0.6
+		} else if vertexes == 100 {
+			return 0.5
+		} else if vertexes == 200 {
+			return 0.4
+		}
+	} else {
+		if vertexes == 25 {
+			return 1.0
+		} else if vertexes == 50 {
+			return 0.95
+		} else if vertexes == 100 {
+			return 0.90
+		} else if vertexes == 200 {
+			return 0.85
+		}
+	}
+
+	panic("Bad number of vertexes")
 }
