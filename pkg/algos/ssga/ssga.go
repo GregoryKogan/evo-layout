@@ -1,6 +1,7 @@
 package ssga
 
 import (
+	"context"
 	"math/rand/v2"
 	"sort"
 	"time"
@@ -29,16 +30,23 @@ func NewAlgorithm(
 	}
 }
 
-func (alg *Algorithm) Run() {
+func (alg *Algorithm) Run(ctx context.Context) {
 	alg.InitPopulation()
 	fitness := 0.0
 	for alg.generation < alg.GenerationLimit {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		alg.Evolve()
 		alg.generation++
 		bestFitness := alg.Solution.Fitness()
 		if fitness != bestFitness {
 			fitness = bestFitness
-			alg.LogStep(algos.GAStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation})
+			if alg.ProgressLoggerProvider != nil {
+				alg.LogStep(algos.GAStep{Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation})
+			}
 		}
 	}
 }
@@ -49,6 +57,25 @@ func (alg *Algorithm) InitPopulation() {
 		pop[i] = alg.Problem.RandomSolution()
 	}
 	alg.population = pop
+}
+
+func (alg *Algorithm) Seed(seedSolution problems.Solution) {
+	alg.population = make([]problems.Solution, alg.params.PopulationSize)
+	for i := range alg.params.PopulationSize {
+		alg.population[i] = alg.params.MutationFunc(seedSolution)
+	}
+	alg.population[0] = seedSolution
+	alg.Solution = seedSolution
+}
+
+func (alg *Algorithm) GetPopulation() []problems.Solution {
+	pop := make([]problems.Solution, len(alg.population))
+	copy(pop, alg.population)
+	return pop
+}
+
+func (alg *Algorithm) GetSteps() int {
+	return alg.generation
 }
 
 func (alg *Algorithm) Evolve() {

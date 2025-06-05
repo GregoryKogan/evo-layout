@@ -7,7 +7,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
 )
 
-func Norm() problems.MutationFunc {
+func Norm(k float64) problems.MutationFunc {
 	return func(individual problems.Solution) problems.Solution {
 		s, ok := individual.(*graphplane.GraphPlaneSolution)
 		if !ok {
@@ -18,8 +18,8 @@ func Norm() problems.MutationFunc {
 		copy(m.VertPositions, s.VertPositions)
 
 		i := rand.IntN(len(m.VertPositions))
-		dx := rand.NormFloat64() * s.Width / 10
-		dy := rand.NormFloat64() * s.Height / 10
+		dx := rand.NormFloat64() * s.Width * k
+		dy := rand.NormFloat64() * s.Height * k
 		m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.Width)
 		m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.Height)
 

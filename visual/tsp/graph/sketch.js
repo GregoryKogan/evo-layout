@@ -13,11 +13,11 @@ function setup() {
     response.text().then((data) => {
       const parsed = JSON.parse(
         "[" +
-          data
-            .split("\n")
-            .filter((line) => line.length > 2)
-            .join(",") +
-          "]"
+        data
+          .split("\n")
+          .filter((line) => line.length > 2)
+          .join(",") +
+        "]"
       );
       problem = parsed[0];
       if (parsed[1].took !== undefined) {
@@ -87,4 +87,10 @@ function drawSolution(solution, color) {
     toScreenCoord(problem.cities[0].lat, problem.cities[0].lon).x,
     toScreenCoord(problem.cities[0].lat, problem.cities[0].lon).y
   );
+}
+
+function keyPressed() {
+  if (keyCode === ENTER) {
+    saveCanvas();
+  }
 }

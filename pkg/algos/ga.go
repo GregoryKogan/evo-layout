@@ -34,3 +34,7 @@ func NewGeneticAlgorithm(
 		ProgressLoggerProvider: logger,
 	}
 }
+
+func (ga *GeneticAlgorithm) GetSolution() problems.Solution {
+	return ga.Solution
+}

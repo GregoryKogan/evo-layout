@@ -12,6 +12,7 @@ type KnapsackSolution struct {
 	items            []Item
 	Bits             []bool    `json:"bits"`
 	CachedObjectives []float64 `json:"objectives"`
+	CachedFitness    float64   `json:"fitness"`
 }
 
 func RandomKnapsackSolution(problemParams KnapsackProblemParams, items []Item) problems.Solution {
@@ -22,7 +23,28 @@ func RandomKnapsackSolution(problemParams KnapsackProblemParams, items []Item) p
 	return &KnapsackSolution{problemParams: problemParams, items: items, Bits: Bits}
 }
 
-func (s *KnapsackSolution) Crossover(other problems.Solution) []problems.Solution {
+func CrossoverFunc() problems.CrossoverFunc {
+	return func(parentA, parentB problems.Solution) []problems.Solution {
+		a, aOk := parentA.(*KnapsackSolution)
+		b, bOk := parentB.(*KnapsackSolution)
+		if !aOk || !bOk {
+			panic("invalid parents")
+		}
+		return a.crossover(b)
+	}
+}
+
+func MutationFunc() problems.MutationFunc {
+	return func(individual problems.Solution) problems.Solution {
+		s, ok := individual.(*KnapsackSolution)
+		if !ok {
+			panic("invalid individual")
+		}
+		return s.mutate()
+	}
+}
+
+func (s *KnapsackSolution) crossover(other problems.Solution) []problems.Solution {
 	otherKSS, ok := other.(*KnapsackSolution)
 	if !ok {
 		return []problems.Solution{s}
@@ -48,7 +70,7 @@ func (s *KnapsackSolution) Crossover(other problems.Solution) []problems.Solutio
 	}
 }
 
-func (s *KnapsackSolution) Mutate() problems.Solution {
+func (s *KnapsackSolution) mutate() problems.Solution {
 	mutantBits := make([]bool, s.problemParams.ItemsNum)
 	copy(mutantBits, s.Bits)
 
@@ -89,5 +111,6 @@ func (s *KnapsackSolution) Objectives() []float64 {
 }
 
 func (s *KnapsackSolution) Fitness() float64 {
-	return slices.Max(s.Objectives())
+	s.CachedFitness = slices.Max(s.Objectives())
+	return s.CachedFitness
 }

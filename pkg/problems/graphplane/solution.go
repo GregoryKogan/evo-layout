@@ -47,10 +47,8 @@ func (s *GraphPlaneSolution) Objectives() []float64 {
 	intersections := float64(s.CountIntersections())
 	dispersion := s.dispersionPenalty()
 	angle := s.anglePenalty()
-	if intersections > 0 {
-		dispersion *= intersections
-		angle *= intersections
-	}
+	dispersion *= (intersections + 1.0)
+	angle *= (intersections + 1.0)
 	s.CachedObjectives = []float64{intersections, dispersion, angle}
 	return s.CachedObjectives
 }

@@ -1,6 +1,7 @@
 package nsga2
 
 import (
+	"context"
 	"math"
 	"math/rand/v2"
 	"sort"
@@ -20,13 +21,13 @@ type Individual struct {
 // NSGA2Algorithm implements the NSGA-II multiobjective evolutionary algorithm.
 type Algorithm struct {
 	algos.GeneticAlgorithm // embedded common fields (start time, timeout, logger, problem, etc.)
-	params                 NSGA2Params
+	params                 Params
 	generation             int
 	population             []Individual
 }
 
 // NewAlgorithm creates a new NSGA-II instance.
-func NewAlgorithm(problem problems.Problem, params NSGA2Params, generationLimit int, logger algos.ProgressLoggerProvider) *Algorithm {
+func NewAlgorithm(problem problems.Problem, params Params, generationLimit int, logger algos.ProgressLoggerProvider) *Algorithm {
 	return &Algorithm{
 		GeneticAlgorithm: *algos.NewGeneticAlgorithm(problem, generationLimit, logger),
 		params:           params,
@@ -43,12 +44,32 @@ func (alg *Algorithm) Seed(seedSolution problems.Solution) {
 	alg.Solution = seedSolution
 }
 
+func (alg *Algorithm) SetPopulation(pop []problems.Solution) {
+	if len(pop) != alg.params.PopulationSize {
+		panic("Wrong population size")
+	}
+	alg.population = make([]Individual, alg.params.PopulationSize)
+	for i := range alg.params.PopulationSize {
+		alg.population[i] = Individual{Solution: pop[i]}
+	}
+}
+
+func (alg *Algorithm) GetSteps() int {
+	return alg.generation
+}
+
 // Run executes the NSGA-II process until timeout.
-func (alg *Algorithm) Run() {
+func (alg *Algorithm) Run(ctx context.Context) {
 	if len(alg.population) < alg.params.PopulationSize {
 		alg.initPopulation()
 	}
 	for alg.generation < alg.GenerationLimit {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		alg.generation++
 
 		// Generate offspring population by selection, crossover and mutation.
@@ -74,7 +95,7 @@ func (alg *Algorithm) Run() {
 		}
 		alg.population = nextPopulation
 
-		// Log current generation data: record generation number and the Pareto front (list of f1, f2 pairs)
+		// Log current generation data: record generation number and the Pareto front
 		if len(fronts) > 0 {
 			var pareto [][]float64
 			for _, ind := range fronts[0] {

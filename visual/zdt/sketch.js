@@ -8,47 +8,46 @@ const zoom = 0.95;
 
 // Set the ZDT problem type to visualize ("ZDT1", "ZDT2", "ZDT3", "ZDT4", or "ZDT6").
 const zdtType = "ZDT6";
-const algorithm = "NSGA2";
+const algorithm = "SPEA2";
 const gifLenSeconds = 10;
 const maxFrameRate = 30;
 const generateGif = false;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  background(18);
+  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
   // Load the JSONL log file (each line is a JSON object)
-  loadStrings(zdtType + '_' + algorithm + '.jsonl', function(lines) {
+  loadStrings(zdtType + '_' + algorithm + '.jsonl', function (lines) {
     // Parse each line as JSON and remove the header if needed.
     data = lines.filter(l => l.trim().length > 0).map(l => JSON.parse(l));
     data.shift();
     loaded = true;
-    fr = min(ceil(data.length / gifLenSeconds), maxFrameRate)
+    fr = min(ceil(data.length / gifLenSeconds), maxFrameRate);
     frameRate(fr);
-    generationIncrement = ceil(data.length / (fr * gifLenSeconds))
+    generationIncrement = ceil(data.length / (fr * gifLenSeconds));
     if (generateGif) saveGif(zdtType + '-' + algorithm + '.gif', gifLenSeconds);
   });
 }
 
 function draw() {
   if (!loaded) return;
-  background(18);
-  
+  background(255);
+
   // Draw axes
-  stroke(255);
+  stroke(0);
   line(30, height - 30, width * zoom, height - 30); // x-axis
   line(30, height - 30, 30, height * (1 - zoom));   // y-axis
-  
+
   // Draw the true Pareto front using the selected ZDT type.
   drawTrueParetoFront();
 
-  let entry = data[currentGen];
-  if (entry) { 
+  let entry = data[data.length - 1];
+  if (entry) {
     // Label axes and generation/iteration info.
     noStroke();
-    fill(255);
+    fill(0);
     textSize(16);
     textAlign(RIGHT);
-    text(zdtType + ' ' + algorithm, width - 20, 20)
+    text(zdtType + ' ' + algorithm, width - 20, 20);
     textAlign(LEFT);
     if (entry.generation) text("Generation: " + entry.generation, 20, 20);
     if (entry.iteration) text("Iteration: " + entry.iteration, 20, 20);
@@ -57,10 +56,10 @@ function draw() {
 
     // Plot each point from the current Pareto front as blue circles.
     for (let point of entry.pareto_front) drawPoint(point);
-    
+
     // If a best solution is logged separately, draw it with a red outline.
     if (entry.solution) drawPoint(entry.solution.objectives, true);
-    
+
     // Advance to next generation on each frame, if available.
     if (currentGen + generationIncrement < data.length) currentGen += generationIncrement;
     else currentGen = data.length - 1;
@@ -69,10 +68,10 @@ function draw() {
 
 // Draws the true Pareto front for the selected ZDT problem.
 function drawTrueParetoFront() {
-  stroke(0, 255, 0);
-  strokeWeight(2);
+  stroke("#257ab6");
+  strokeWeight(3);
   noFill();
-  
+
   if (zdtType === "ZDT3") {
     // The Pareto front for ZDT3 is discontinuous.
     // Use the five known intervals (from literature) and a fixed sample count.
@@ -98,23 +97,23 @@ function drawTrueParetoFront() {
     }
     return;
   }
-  
+
   // For other ZDTs:
   if (zdtType === "ZDT6") {
     // For ZDT6, sample a parameter t from 0 to 1, compute the actual f1 value using its expression,
     // then define f2 = 1 - (f1)^2.
     beginShape();
     for (let t = 0; t <= 1; t += 0.0001) {
-         let f1_val = 1 - exp(-4 * t) * pow(sin(6 * PI * t), 6);
-         let f2_val = 1 - f1_val * f1_val;
-         let screenX = map(f1_val, 0, 1, 30, width * zoom);
-         let screenY = mapF2(f2_val);
-         vertex(screenX, screenY);
+      let f1_val = 1 - exp(-4 * t) * pow(sin(6 * PI * t), 6);
+      let f2_val = 1 - f1_val * f1_val;
+      let screenX = map(f1_val, 0, 1, 30, width * zoom);
+      let screenY = mapF2(f2_val);
+      vertex(screenX, screenY);
     }
     endShape();
     return;
   }
-  
+
   // For ZDT1, ZDT2, and ZDT4, assume the known front is given by a continuous relationship.
   beginShape();
   for (let x = 0; x <= 1; x += 0.01) {
@@ -137,22 +136,27 @@ function drawPoint(point, best = false) {
   let x = map(point[0], 0, 1, 30, width * zoom);
   let y = mapF2(point[1]);
   noStroke();
-  fill(0, 200, 255);
+  fill("#d62729");
   circle(x, y, 10);
-  if (best) {
-    fill(255, 0, 0);
-    circle(x, y, 12);
-  }
+  // if (best) {
+  //   fill("#d62729");
+  //   circle(x, y, 12);
+  // }
 }
 
 // Helper function for mapping f2 values.
 // For ZDT3, we use preset bounds (e.g. from -0.3 to 1.0) because some f2 values may be negative.
 function mapF2(f2) {
-    if (zdtType === "ZDT3") {
-        const minVal = 1 - sqrt(0.8518328654) - 0.8518328654 * sin(10 * PI * 0.8518328654)
-        return map(f2, minVal, 1.0, height - 30, height * (1 - zoom));
-    } else {
-        return map(f2, 0, 1, height - 30, height * (1 - zoom));
-    }
+  if (zdtType === "ZDT3") {
+    const minVal = 1 - sqrt(0.8518328654) - 0.8518328654 * sin(10 * PI * 0.8518328654);
+    return map(f2, minVal, 1.0, height - 30, height * (1 - zoom));
+  } else {
+    return map(f2, 0, 1, height - 30, height * (1 - zoom));
+  }
 }
-  
+
+function keyPressed() {
+  if (keyCode === ENTER) {
+    saveCanvas(zdtType + '-' + algorithm + '.png');
+  }
+}

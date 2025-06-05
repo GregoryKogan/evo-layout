@@ -1,6 +1,7 @@
 package spea2
 
 import (
+	"context"
 	"math"
 	"slices"
 	"sort"
@@ -46,11 +47,16 @@ func NewAlgorithm(
 }
 
 // Run executes SPEA2 until timeout or generation limit, logging each generation.
-func (alg *Algorithm) Run() {
+func (alg *Algorithm) Run(ctx context.Context) {
 	alg.initPopulation()
 	alg.archive = nil
 
 	for alg.generation < alg.GenerationLimit {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		alg.generation++
 
 		combined := slices.Concat(alg.population, alg.archive)
@@ -59,6 +65,10 @@ func (alg *Algorithm) Run() {
 		alg.logParetoFront()
 		alg.reproduce()
 	}
+}
+
+func (alg *Algorithm) GetSteps() int {
+	return alg.generation
 }
 
 // initPopulation initializes the population with random solutions.
@@ -127,7 +137,7 @@ func (alg *Algorithm) logParetoFront() {
 			}
 		}
 	}
-	if improved {
+	if improved && alg.ProgressLoggerProvider != nil {
 		alg.LogStep(algos.GAStep{
 			Elapsed:     time.Since(alg.StartTimestamp),
 			ParetoFront: pareto,

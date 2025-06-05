@@ -65,7 +65,7 @@ func NewRandomPlanarGraph(numVertices int) *Graph {
 	// 3) Extract unique undirected edges
 	edgeMap := make(map[[2]int]struct{})
 	for ti := 0; ti < len(tri.Triangles); ti += 3 {
-		for k := 0; k < 3; k++ {
+		for k := range 3 {
 			a, b := tri.Triangles[ti+k], tri.Triangles[ti+(k+1)%3]
 			if a > b {
 				a, b = b, a

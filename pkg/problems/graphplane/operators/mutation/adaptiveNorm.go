@@ -7,7 +7,7 @@ import (
 	"github.com/GregoryKogan/genetic-algorithms/pkg/problems/graphplane"
 )
 
-func AdaptiveNorm(maxSteps int) problems.MutationFunc {
+func AdaptiveNorm(maxSteps int, k float64) problems.MutationFunc {
 	return func(individual problems.Solution) problems.Solution {
 		s, ok := individual.(*graphplane.GraphPlaneSolution)
 		if !ok {
@@ -16,7 +16,7 @@ func AdaptiveNorm(maxSteps int) problems.MutationFunc {
 
 		tangled := s.TangledVertexes()
 		if len(tangled) > 0 {
-			return FixedNorm()(s)
+			return FixedNorm(k)(s)
 		}
 
 		m := &graphplane.GraphPlaneSolution{Graph: s.Graph, Width: s.Width, Height: s.Height}
@@ -29,8 +29,8 @@ func AdaptiveNorm(maxSteps int) problems.MutationFunc {
 			oldX := m.VertPositions[i].X
 			oldY := m.VertPositions[i].Y
 
-			dx := rand.NormFloat64() * s.Width / 50
-			dy := rand.NormFloat64() * s.Height / 50
+			dx := rand.NormFloat64() * s.Width * k
+			dy := rand.NormFloat64() * s.Height * k
 			m.VertPositions[i].X = clamp(m.VertPositions[i].X+dx, 0, s.Width)
 			m.VertPositions[i].Y = clamp(m.VertPositions[i].Y+dy, 0, s.Height)
 

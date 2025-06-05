@@ -1,6 +1,7 @@
 package sga
 
 import (
+	"context"
 	"math/rand/v2"
 	"sort"
 	"time"
@@ -28,20 +29,31 @@ func NewAlgorithm(problem problems.Problem, params Params, generationLimit int, 
 	}
 }
 
-func (alg *Algorithm) Run() {
+func (alg *Algorithm) Run(ctx context.Context) {
 	alg.InitPopulation()
 	fitness := 0.0
 	for alg.generation < alg.GenerationLimit {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		alg.Evolve()
 		alg.generation++
 		bestFitness := alg.Solution.Fitness()
 		if fitness != bestFitness {
 			fitness = bestFitness
-			alg.LogStep(algos.GAStep{
-				Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation,
-			})
+			if alg.ProgressLoggerProvider != nil {
+				alg.LogStep(algos.GAStep{
+					Elapsed: time.Since(alg.StartTimestamp), Solution: alg.Solution, Step: alg.generation,
+				})
+			}
 		}
 	}
+}
+
+func (alg *Algorithm) GetSteps() int {
+	return alg.generation
 }
 
 func (alg *Algorithm) InitPopulation() {

@@ -1,14 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
-    <script src="sketch.js" defer></script>
-    <title>ZDT Pareto Front Visualization</title>
-    <style>
-      body { margin: 0; overflow: hidden; background-color: #121212; }
-      #info { position: absolute; color: white; padding: 10px; }
-    </style>
-  </head>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
+  <script src="sketch.js" defer></script>
+  <title>ZDT Pareto Front Visualization</title>
+  <style>
+    html {
+      background-color: #121212;
+    }
+
+    body {
+      display: block;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+      font-family: monospace;
+    }
+
+    canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -10;
+    }
+
+    span {
+      margin-left: 1em;
+      margin-top: 1em;
+      color: white;
+    }
+  </style>
+</head>
+
 </html>
