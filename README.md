@@ -1,5 +1,7 @@
 # EvoLayout: A Go Library for Hybrid Genetic Algorithms
 
+[![Static Badge](https://img.shields.io/badge/The%20Research%20Paper-blue?style=for-the-badge&logo=googledocs&logoColor=white&logoSize=auto&label=%20Read)](paper.pdf)
+
 A high-performance, modular Go library for exploring and applying genetic algorithms, with a special focus on multi-objective graph layout optimization. This project is the artifact of the research paper "Development of a system implementing a genetic algorithm and its application to the arrangement of graph vertices on a plane."
 
 <p align="center">
